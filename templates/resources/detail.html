@@ -1,272 +1,380 @@
-{% extends 'base.html' %}
-
-{% block title %}{{ resource.title }}{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% block title %}{{ resource.title }}{% endblock %} {% block content %}
 <div class="container">
-    <div class="row">
-        <!-- Nội dung chính -->
-        <div class="col-lg-8">
-            <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-3">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'resources:list' %}">Tài liệu</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'resources:list' %}?category={{ resource.category.pk }}">{{ resource.category.name }}</a></li>
-                    <li class="breadcrumb-item active">{{ resource.title|truncatechars:30 }}</li>
-                </ol>
-            </nav>
+  <div class="row">
+    <!-- Nội dung chính -->
+    <div class="col-lg-8">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="{% url 'home' %}">Trang chủ</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="{% url 'resources:list' %}">Tài liệu</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a
+              href="{% url 'resources:list' %}?category={{ resource.category.pk }}"
+              >{{ resource.category.name }}</a
+            >
+          </li>
+          <li class="breadcrumb-item active">
+            {{ resource.title|truncatechars:30 }}
+          </li>
+        </ol>
+      </nav>
 
-            <!-- Trạng thái (nếu chưa duyệt) -->
-            {% if resource.status != 'approved' %}
-            <div class="alert {% if resource.status == 'pending' %}alert-warning{% else %}alert-danger{% endif %}">
-                <i class="fas {% if resource.status == 'pending' %}fa-clock{% else %}fa-times-circle{% endif %} me-2"></i>
-                <strong>Trạng thái:</strong> {{ resource.get_status_display }}
-                {% if resource.rejection_reason %}
-                <br><strong>Lý do:</strong> {{ resource.rejection_reason }}
-                {% endif %}
-            </div>
+      <!-- Trạng thái (nếu chưa duyệt) -->
+      {% if resource.status != 'approved' %}
+      <div
+        class="alert {% if resource.status == 'pending' %}alert-warning{% else %}alert-danger{% endif %}"
+      >
+        <i
+          class="fas {% if resource.status == 'pending' %}fa-clock{% else %}fa-times-circle{% endif %} me-2"
+        ></i>
+        <strong>Trạng thái:</strong> {{ resource.get_status_display }} {% if resource.rejection_reason %} <br /><strong>Lý do:</strong> {{
+        resource.rejection_reason }} {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Thông tin tài liệu -->
+      <div class="card shadow-sm border-0 mb-4">
+        {% if resource.thumbnail %}
+        <img
+          src="{{ resource.thumbnail.url }}"
+          class="card-img-top"
+          alt="{{ resource.title }}"
+          style="max-height: 400px; object-fit: cover"
+        />
+        {% endif %}
+        <div class="card-body p-4">
+          <div class="mb-3">
+            <span class="badge bg-primary-subtle text-primary"
+              >{{ resource.category.name }}</span
+            >
+            <span class="badge bg-secondary-subtle text-secondary"
+              >{{ resource.get_resource_type_display }}</span
+            >
+            <span class="badge {{ resource.status_badge_class }}"
+              >{{ resource.get_status_display }}</span
+            >
+          </div>
+
+          <h2 class="fw-bold mb-3">{{ resource.title }}</h2>
+
+          <div class="d-flex flex-wrap gap-3 text-muted mb-4">
+            <span
+              ><i class="fas fa-user me-1"></i>{{
+              resource.author.full_name|default:resource.author.username
+              }}</span
+            >
+            <span
+              ><i class="fas fa-calendar me-1"></i>{{
+              resource.created_at|date:"d/m/Y H:i" }}</span
+            >
+            <span
+              ><i class="fas fa-eye me-1"></i>{{ resource.view_count }} lượt
+              xem</span
+            >
+            <span
+              ><i class="fas fa-download me-1"></i>{{ resource.download_count }}
+              lượt tải</span
+            >
+            {% if resource.average_rating > 0 %}
+            <span>
+              <i class="fas fa-star text-warning me-1"></i>{{
+              resource.average_rating }}/5 ({{ resource.comment_count }} đánh
+              giá)
+            </span>
             {% endif %}
+          </div>
 
-            <!-- Thông tin tài liệu -->
-            <div class="card shadow-sm border-0 mb-4">
-                {% if resource.thumbnail %}
-                <img src="{{ resource.thumbnail.url }}" class="card-img-top" alt="{{ resource.title }}" style="max-height: 400px; object-fit: cover;">
-                {% endif %}
-                <div class="card-body p-4">
-                    <div class="mb-3">
-                        <span class="badge bg-primary-subtle text-primary">{{ resource.category.name }}</span>
-                        <span class="badge bg-secondary-subtle text-secondary">{{ resource.get_resource_type_display }}</span>
-                        <span class="badge {{ resource.status_badge_class }}">{{ resource.get_status_display }}</span>
-                    </div>
+          {% if resource.description %}
+          <div class="mb-4">
+            <h5 class="fw-bold">Mô tả</h5>
+            <p class="text-muted">{{ resource.description }}</p>
+          </div>
+          {% endif %} {% if resource.content %}
+          <div class="mb-4">
+            <h5 class="fw-bold">Nội dung chi tiết</h5>
+            <div class="content-area">{{ resource.content|linebreaks }}</div>
+          </div>
+          {% endif %}
 
-                    <h2 class="fw-bold mb-3">{{ resource.title }}</h2>
-
-                    <div class="d-flex flex-wrap gap-3 text-muted mb-4">
-                        <span><i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}</span>
-                        <span><i class="fas fa-calendar me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}</span>
-                        <span><i class="fas fa-eye me-1"></i>{{ resource.view_count }} lượt xem</span>
-                        <span><i class="fas fa-download me-1"></i>{{ resource.download_count }} lượt tải</span>
-                        {% if resource.average_rating > 0 %}
-                        <span>
-                            <i class="fas fa-star text-warning me-1"></i>{{ resource.average_rating }}/5
-                            ({{ resource.comment_count }} đánh giá)
-                        </span>
-                        {% endif %}
-                    </div>
-
-                    {% if resource.description %}
-                    <div class="mb-4">
-                        <h5 class="fw-bold">Mô tả</h5>
-                        <p class="text-muted">{{ resource.description }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if resource.content %}
-                    <div class="mb-4">
-                        <h5 class="fw-bold">Nội dung chi tiết</h5>
-                        <div class="content-area">{{ resource.content|linebreaks }}</div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Nút hành động -->
-                    <div class="d-flex flex-wrap gap-2 pt-3 border-top">
-                        {% if resource.file %}
-                        <a href="{% url 'resources:download' resource.slug %}" class="btn btn-success">
-                            <i class="fas fa-download me-2"></i>Tải xuống {{ resource.file_size_display }}
-                        </a>
-                        {% endif %}
-
-                        {% if user.is_authenticated %}
-                            {% if user == resource.author or is_admin %}
-                            <a href="{% url 'resources:edit' resource.slug %}" class="btn btn-outline-primary">
-                                <i class="fas fa-edit me-2"></i>Chỉnh sửa
-                            </a>
-                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                <i class="fas fa-trash me-2"></i>Xóa
-                            </button>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Nhật ký duyệt (cho admin và tác giả) -->
-            {% if submission_logs %}
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-history me-2"></i>Nhật ký duyệt</h5>
-                </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        {% for log in submission_logs %}
-                        <div class="timeline-item">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    {% if log.new_status == 'approved' %}
-                                    <span class="badge bg-success me-2">Đã duyệt</span>
-                                    {% elif log.new_status == 'rejected' %}
-                                    <span class="badge bg-danger me-2">Từ chối</span>
-                                    {% else %}
-                                    <span class="badge bg-warning text-dark me-2">Chờ duyệt</span>
-                                    {% endif %}
-                                    <span>{{ log.note }}</span>
-                                </div>
-                                <small class="text-muted">
-                                    {{ log.reviewer.full_name|default:log.reviewer.username }} -
-                                    {{ log.created_at|date:"d/m/Y H:i" }}
-                                </small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Bình luận -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0">
-                        <i class="fas fa-comments me-2"></i>Bình luận ({{ comments|length }})
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if user.is_authenticated and resource.status == 'approved' %}
-                    <form method="post" action="{% url 'resources:add_comment' resource.slug %}" class="mb-4">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label fw-medium">Đánh giá</label>
-                            <div class="star-rating">
-                                {% for i in "54321" %}
-                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" {% if i == "5" %}checked{% endif %}>
-                                <label for="star{{ i }}" title="{{ i }} sao"><i class="fas fa-star"></i></label>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <textarea name="content" class="form-control" rows="3" placeholder="Viết bình luận của bạn..." required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane me-2"></i>Gửi bình luận
-                        </button>
-                    </form>
-                    {% elif not user.is_authenticated %}
-                    <p class="text-muted">
-                        <a href="{% url 'accounts:login' %}">Đăng nhập</a> để viết bình luận.
-                    </p>
-                    {% endif %}
-
-                    {% for comment in comments %}
-                    <div class="comment-item border-bottom py-3">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex">
-                                {% if comment.user.avatar %}
-                                <img src="{{ comment.user.avatar.url }}" alt="" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                {% else %}
-                                <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                {% endif %}
-                                <div>
-                                    <strong>{{ comment.user.full_name|default:comment.user.username }}</strong>
-                                    <div class="text-warning small">
-                                        {% for i in "12345" %}
-                                            {% if forloop.counter <= comment.rating %}
-                                            <i class="fas fa-star"></i>
-                                            {% else %}
-                                            <i class="far fa-star"></i>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                    <p class="mb-1 mt-1">{{ comment.content }}</p>
-                                    <small class="text-muted">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
-                                </div>
-                            </div>
-                            {% if user == comment.user or is_admin %}
-                            <form method="post" action="{% url 'resources:delete_comment' comment.pk %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"
-                                        onclick="return confirm('Bạn có chắc muốn xóa bình luận này?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="text-muted text-center py-3">Chưa có bình luận nào.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-lg-4">
-            <!-- Thông tin tệp -->
+          <!-- Nút hành động -->
+          <div class="d-flex flex-wrap gap-2 pt-3 border-top">
             {% if resource.file %}
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-transparent">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-file me-2"></i>Tệp đính kèm</h6>
-                </div>
-                <div class="card-body">
-                    <p class="mb-2"><strong>Định dạng:</strong> {{ resource.file_extension|upper }}</p>
-                    <p class="mb-3"><strong>Kích thước:</strong> {{ resource.file_size_display }}</p>
-                    <a href="{% url 'resources:download' resource.slug %}" class="btn btn-success w-100">
-                        <i class="fas fa-download me-2"></i>Tải xuống
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Tài liệu liên quan -->
-            {% if related_resources %}
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-transparent">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-link me-2"></i>Tài liệu liên quan</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    {% for rel in related_resources %}
-                    <a href="{% url 'resources:detail' rel.slug %}" class="list-group-item list-group-item-action">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <strong class="small">{{ rel.title|truncatechars:40 }}</strong>
-                                <br><small class="text-muted"><i class="fas fa-eye me-1"></i>{{ rel.view_count }}</small>
-                            </div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
+            <a
+              href="{% url 'resources:download' resource.slug %}"
+              class="btn btn-success"
+            >
+              <i class="fas fa-download me-2"></i>Tải xuống {{
+              resource.file_size_display }}
+            </a>
+            {% endif %} {% if user.is_authenticated %} {% if user == resource.author or is_admin %}
+            <a
+              href="{% url 'resources:edit' resource.slug %}"
+              class="btn btn-outline-primary"
+            >
+              <i class="fas fa-edit me-2"></i>Chỉnh sửa
+            </a>
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteModal"
+            >
+              <i class="fas fa-trash me-2"></i>Xóa
+            </button>
+            {% endif %} {% endif %}
+          </div>
         </div>
+      </div>
+
+      <!-- Nhật ký duyệt (cho admin và tác giả) -->
+      {% if submission_logs %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-history me-2"></i>Nhật ký duyệt
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            {% for log in submission_logs %}
+            <div class="timeline-item">
+              <div class="d-flex justify-content-between">
+                <div>
+                  {% if log.new_status == 'approved' %}
+                  <span class="badge bg-success me-2">Đã duyệt</span>
+                  {% elif log.new_status == 'rejected' %}
+                  <span class="badge bg-danger me-2">Từ chối</span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark me-2">Chờ duyệt</span>
+                  {% endif %}
+                  <span>{{ log.note }}</span>
+                </div>
+                <small class="text-muted">
+                  {{ log.reviewer.full_name|default:log.reviewer.username }} -
+                  {{ log.created_at|date:"d/m/Y H:i" }}
+                </small>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Bình luận -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-comments me-2"></i>Bình luận ({{ comments|length
+            }})
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if user.is_authenticated and resource.status == 'approved' %}
+          <form
+            method="post"
+            action="{% url 'resources:add_comment' resource.slug %}"
+            class="mb-4"
+          >
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-medium">Đánh giá</label>
+              <div class="star-rating">
+                {% for i in "54321" %}
+                <input
+                  type="radio"
+                  name="rating"
+                  value="{{ i }}"
+                  id="star{{ i }}"
+                  {% if i == "5" %}checked{% endif %}
+                />
+                <label for="star{{ i }}" title="{{ i }} sao"
+                  ><i class="fas fa-star"></i
+                ></label>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <textarea
+                name="content"
+                class="form-control"
+                rows="3"
+                placeholder="Viết bình luận của bạn..."
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane me-2"></i>Gửi bình luận
+            </button>
+          </form>
+          {% elif not user.is_authenticated %}
+          <p class="text-muted">
+            <a href="{% url 'accounts:login' %}">Đăng nhập</a> để viết bình
+            luận.
+          </p>
+          {% endif %} {% for comment in comments %}
+          <div class="comment-item border-bottom py-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="d-flex">
+                {% if comment.user.avatar %}
+                <img
+                  src="{{ comment.user.avatar.url }}"
+                  alt=""
+                  class="rounded-circle me-3"
+                  width="40"
+                  height="40"
+                  style="object-fit: cover"
+                />
+                {% else %}
+                <div
+                  class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center me-3"
+                  style="width: 40px; height: 40px"
+                >
+                  <i class="fas fa-user"></i>
+                </div>
+                {% endif %}
+                <div>
+                  <strong
+                    >{{ comment.user.full_name|default:comment.user.username
+                    }}</strong
+                  >
+                  <div class="text-warning small">
+                    {% for i in "12345" %} {% if forloop.counter <= comment.rating %}
+                    <i class="fas fa-star"></i>
+                    {% else %}
+                    <i class="far fa-star"></i>
+                    {% endif %} {% endfor %}
+                  </div>
+                  <p class="mb-1 mt-1">{{ comment.content }}</p>
+                  <small class="text-muted"
+                    >{{ comment.created_at|date:"d/m/Y H:i" }}</small
+                  >
+                </div>
+              </div>
+              {% if user == comment.user or is_admin %}
+              <form
+                method="post"
+                action="{% url 'resources:delete_comment' comment.pk %}"
+                class="d-inline"
+              >
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Xóa"
+                  onclick="
+                    return confirm('Bạn có chắc muốn xóa bình luận này?');
+                  "
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-muted text-center py-3">Chưa có bình luận nào.</p>
+          {% endfor %}
+        </div>
+      </div>
     </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Thông tin tệp -->
+      {% if resource.file %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-transparent">
+          <h6 class="fw-bold mb-0">
+            <i class="fas fa-file me-2"></i>Tệp đính kèm
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">
+            <strong>Định dạng:</strong> {{ resource.file_extension|upper }}
+          </p>
+          <p class="mb-3">
+            <strong>Kích thước:</strong> {{ resource.file_size_display }}
+          </p>
+          <a
+            href="{% url 'resources:download' resource.slug %}"
+            class="btn btn-success w-100"
+          >
+            <i class="fas fa-download me-2"></i>Tải xuống
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tài liệu liên quan -->
+      {% if related_resources %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-transparent">
+          <h6 class="fw-bold mb-0">
+            <i class="fas fa-link me-2"></i>Tài liệu liên quan
+          </h6>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for rel in related_resources %}
+          <a
+            href="{% url 'resources:detail' rel.slug %}"
+            class="list-group-item list-group-item-action"
+          >
+            <div class="d-flex justify-content-between">
+              <div>
+                <strong class="small">{{ rel.title|truncatechars:40 }}</strong>
+                <br /><small class="text-muted"
+                  ><i class="fas fa-eye me-1"></i>{{ rel.view_count }}</small
+                >
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <!-- Modal xóa -->
 {% if user.is_authenticated and user == resource.author or is_admin %}
 <div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Xác nhận xóa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa tài liệu "<strong>{{ resource.title }}</strong>"?</p>
-                <p class="text-danger small">Hành động này không thể hoàn tác.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <form method="post" action="{% url 'resources:delete' resource.slug %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Xóa
-                    </button>
-                </form>
-            </div>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Xác nhận xóa</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Bạn có chắc chắn muốn xóa tài liệu "<strong
+            >{{ resource.title }}</strong
+          >"?
+        </p>
+        <p class="text-danger small">Hành động này không thể hoàn tác.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Hủy
+        </button>
+        <form method="post" action="{% url 'resources:delete' resource.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-2"></i>Xóa
+          </button>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}

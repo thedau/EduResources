@@ -7,6 +7,7 @@
 ## ✨ Tính năng chính
 
 ### 🔐 Quản lý người dùng
+
 - Đăng ký / Đăng nhập / Đăng xuất
 - Quản lý hồ sơ cá nhân (avatar, thông tin, bio)
 - Phân quyền 3 vai trò: **Khách** / **Người dùng** / **Quản trị viên**
@@ -14,6 +15,7 @@
 - Admin quản lý và phân quyền người dùng
 
 ### 📚 Quản lý tài liệu
+
 - CRUD tài liệu (Tạo, Xem, Sửa, Xóa)
 - Phân loại theo danh mục và loại tài liệu
 - Upload file đính kèm và ảnh minh họa
@@ -22,22 +24,26 @@
 - Nhật ký phê duyệt chi tiết
 
 ### 📂 Quản lý danh mục
+
 - CRUD danh mục (Admin)
 - Danh mục cha-con (phân cấp)
 - Icon tùy chỉnh cho mỗi danh mục
 
 ### 🔍 Tìm kiếm & Lọc
+
 - Tìm kiếm theo từ khóa
 - Lọc theo danh mục, loại tài liệu
 - Sắp xếp theo nhiều tiêu chí
 - Phân trang danh sách
 
 ### 💬 Bình luận & Đánh giá
+
 - Bình luận trên tài liệu
 - Đánh giá sao (1-5 sao)
 - Quản lý bình luận
 
 ### 📊 Dashboard & Báo cáo (Admin)
+
 - Thống kê tổng quan (người dùng, tài liệu, lượt xem)
 - Biểu đồ phân bố theo danh mục
 - Biểu đồ trạng thái tài liệu
@@ -46,14 +52,14 @@
 
 ## 🛠 Công nghệ sử dụng
 
-| Thành phần | Công nghệ |
-|---|---|
-| Backend | Django 4.2+ (Python) |
-| Database | MySQL / SQLite |
-| Frontend | Bootstrap 5.3, Font Awesome 6 |
-| Charts | Chart.js 4.4 |
-| Font | Google Fonts (Inter) |
-| Auth | Django Authentication (Custom User Model) |
+| Thành phần | Công nghệ                                 |
+| ---------- | ----------------------------------------- |
+| Backend    | Django 4.2+ (Python)                      |
+| Database   | MySQL / SQLite                            |
+| Frontend   | Bootstrap 5.3, Font Awesome 6             |
+| Charts     | Chart.js 4.4                              |
+| Font       | Google Fonts (Inter)                      |
+| Auth       | Django Authentication (Custom User Model) |
 
 ## 📁 Cấu trúc dự án
 
@@ -102,6 +108,7 @@ EduResources/
 ## 🚀 Hướng dẫn cài đặt
 
 ### Yêu cầu
+
 - Python 3.10+
 - pip (Python package manager)
 - MySQL 8.0+ (hoặc dùng SQLite mặc định)
@@ -141,6 +148,7 @@ cp .env.example .env      # Linux/Mac
 ```
 
 Chỉnh sửa file `.env`:
+
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
@@ -182,14 +190,14 @@ Truy cập: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ## 👤 Tài khoản mẫu
 
-| Vai trò | Tài khoản | Mật khẩu | Quyền hạn |
-|---|---|---|---|
-| Quản trị viên | `admin` | `admin123` | Toàn quyền quản lý |
-| Người dùng 1 | `nguyenvana` | `user123` | Đăng tải, bình luận |
-| Người dùng 2 | `tranthib` | `user123` | Đăng tải, bình luận |
-| Người dùng 3 | `levanc` | `user123` | Đăng tải, bình luận |
-| Người dùng 4 | `phamthid` | `user123` | Đăng tải, bình luận |
-| Khách | `khach` | `guest123` | Chỉ xem |
+| Vai trò       | Tài khoản    | Mật khẩu   | Quyền hạn           |
+| ------------- | ------------ | ---------- | ------------------- |
+| Quản trị viên | `admin`      | `admin123` | Toàn quyền quản lý  |
+| Người dùng 1  | `nguyenvana` | `user123`  | Đăng tải, bình luận |
+| Người dùng 2  | `tranthib`   | `user123`  | Đăng tải, bình luận |
+| Người dùng 3  | `levanc`     | `user123`  | Đăng tải, bình luận |
+| Người dùng 4  | `phamthid`   | `user123`  | Đăng tải, bình luận |
+| Khách         | `khach`      | `guest123` | Chỉ xem             |
 
 ## 📊 Mô hình dữ liệu
 
@@ -216,6 +224,7 @@ Truy cập: [http://127.0.0.1:8000](http://127.0.0.1:8000)
    - Theo dõi quá trình duyệt tài liệu
 
 ### Quan hệ
+
 - User (1) → (N) Resource (tác giả)
 - Category (1) → (N) Resource
 - Category (1) → (N) Category (cha-con)
@@ -226,18 +235,18 @@ Truy cập: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ## 🔒 Phân quyền
 
-| Chức năng | Khách | Người dùng | Admin |
-|---|:---:|:---:|:---:|
-| Xem trang chủ | ✅ | ✅ | ✅ |
-| Xem danh sách tài liệu | ✅ | ✅ | ✅ |
-| Xem chi tiết tài liệu | ✅ | ✅ | ✅ |
-| Đăng tải tài liệu | ❌ | ✅ | ✅ |
-| Sửa/Xóa tài liệu của mình | ❌ | ✅ | ✅ |
-| Bình luận & đánh giá | ❌ | ✅ | ✅ |
-| Quản lý danh mục | ❌ | ❌ | ✅ |
-| Phê duyệt tài liệu | ❌ | ❌ | ✅ |
-| Dashboard & Báo cáo | ❌ | ❌ | ✅ |
-| Quản lý người dùng | ❌ | ❌ | ✅ |
+| Chức năng                 | Khách | Người dùng | Admin |
+| ------------------------- | :---: | :--------: | :---: |
+| Xem trang chủ             |  ✅   |     ✅     |  ✅   |
+| Xem danh sách tài liệu    |  ✅   |     ✅     |  ✅   |
+| Xem chi tiết tài liệu     |  ✅   |     ✅     |  ✅   |
+| Đăng tải tài liệu         |  ❌   |     ✅     |  ✅   |
+| Sửa/Xóa tài liệu của mình |  ❌   |     ✅     |  ✅   |
+| Bình luận & đánh giá      |  ❌   |     ✅     |  ✅   |
+| Quản lý danh mục          |  ❌   |     ❌     |  ✅   |
+| Phê duyệt tài liệu        |  ❌   |     ❌     |  ✅   |
+| Dashboard & Báo cáo       |  ❌   |     ❌     |  ✅   |
+| Quản lý người dùng        |  ❌   |     ❌     |  ✅   |
 
 ## 🧪 Chạy Tests
 
@@ -246,6 +255,7 @@ python manage.py test
 ```
 
 Hoặc chạy test từng app:
+
 ```bash
 python manage.py test accounts
 python manage.py test categories
@@ -256,6 +266,7 @@ python manage.py test dashboard
 ## 📝 Quy trình nghiệp vụ
 
 ### Quy trình đăng tải tài liệu
+
 1. Người dùng tạo tài liệu mới → Trạng thái: **Chờ duyệt**
 2. Admin xem danh sách tài liệu chờ duyệt
 3. Admin **Phê duyệt** → Trạng thái: **Đã duyệt** (hiển thị công khai)

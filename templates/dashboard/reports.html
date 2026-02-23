@@ -1,223 +1,245 @@
-{% extends 'base.html' %}
-
-{% block title %}Báo cáo thống kê{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% block title %}Báo cáo thống kê{% endblock %} {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1"><i class="fas fa-chart-bar me-2"></i>Báo cáo thống kê</h2>
-            <p class="text-muted mb-0">Phân tích chi tiết hệ thống EduResource</p>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">
+        <i class="fas fa-chart-bar me-2"></i>Báo cáo thống kê
+      </h2>
+      <p class="text-muted mb-0">Phân tích chi tiết hệ thống EduResource</p>
+    </div>
+    <a href="{% url 'dashboard:index' %}" class="btn btn-outline-primary">
+      <i class="fas fa-tachometer-alt me-2"></i>Bảng điều khiển
+    </a>
+  </div>
+
+  <!-- Thống kê tổng hợp -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <i class="fas fa-book text-primary fa-2x mb-2"></i>
+        <h4 class="fw-bold mb-0">{{ summary.total_resources }}</h4>
+        <small class="text-muted">Tổng tài liệu</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <i class="fas fa-eye text-info fa-2x mb-2"></i>
+        <h4 class="fw-bold mb-0">{{ summary.total_views }}</h4>
+        <small class="text-muted">Lượt xem</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <i class="fas fa-download text-success fa-2x mb-2"></i>
+        <h4 class="fw-bold mb-0">{{ summary.total_downloads }}</h4>
+        <small class="text-muted">Lượt tải</small>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <i class="fas fa-comments text-warning fa-2x mb-2"></i>
+        <h4 class="fw-bold mb-0">{{ summary.total_comments }}</h4>
+        <small class="text-muted">Bình luận</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Biểu đồ -->
+  <div class="row g-4">
+    <!-- Biểu đồ 1: Tài liệu theo danh mục -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-chart-bar me-2 text-primary"></i>Tài liệu theo danh
+            mục
+          </h5>
         </div>
-        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-primary">
-            <i class="fas fa-tachometer-alt me-2"></i>Bảng điều khiển
-        </a>
+        <div class="card-body">
+          <canvas id="chartCategories" height="300"></canvas>
+        </div>
+      </div>
     </div>
 
-    <!-- Thống kê tổng hợp -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <i class="fas fa-book text-primary fa-2x mb-2"></i>
-                <h4 class="fw-bold mb-0">{{ summary.total_resources }}</h4>
-                <small class="text-muted">Tổng tài liệu</small>
-            </div>
+    <!-- Biểu đồ 2: Trạng thái tài liệu -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-chart-pie me-2 text-success"></i>Tỷ lệ trạng thái
+          </h5>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <i class="fas fa-eye text-info fa-2x mb-2"></i>
-                <h4 class="fw-bold mb-0">{{ summary.total_views }}</h4>
-                <small class="text-muted">Lượt xem</small>
-            </div>
+        <div class="card-body">
+          <canvas id="chartStatus" height="300"></canvas>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <i class="fas fa-download text-success fa-2x mb-2"></i>
-                <h4 class="fw-bold mb-0">{{ summary.total_downloads }}</h4>
-                <small class="text-muted">Lượt tải</small>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm text-center p-3">
-                <i class="fas fa-comments text-warning fa-2x mb-2"></i>
-                <h4 class="fw-bold mb-0">{{ summary.total_comments }}</h4>
-                <small class="text-muted">Bình luận</small>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- Biểu đồ -->
-    <div class="row g-4">
-        <!-- Biểu đồ 1: Tài liệu theo danh mục -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Tài liệu theo danh mục</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartCategories" height="300"></canvas>
-                </div>
-            </div>
+    <!-- Biểu đồ 3: Tài liệu theo tháng -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-chart-line me-2 text-info"></i>Tài liệu theo tháng
+            (12 tháng gần nhất)
+          </h5>
         </div>
-
-        <!-- Biểu đồ 2: Trạng thái tài liệu -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-success"></i>Tỷ lệ trạng thái</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartStatus" height="300"></canvas>
-                </div>
-            </div>
+        <div class="card-body">
+          <canvas id="chartMonthly" height="250"></canvas>
         </div>
-
-        <!-- Biểu đồ 3: Tài liệu theo tháng -->
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-chart-line me-2 text-info"></i>Tài liệu theo tháng (12 tháng gần nhất)</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartMonthly" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Biểu đồ 4: Top người đóng góp -->
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Top đóng góp</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartContributors" height="350"></canvas>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Biểu đồ 4: Top người đóng góp -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-trophy me-2 text-warning"></i>Top đóng góp
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="chartContributors" height="350"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chartCategories = JSON.parse('{{ chart_categories|escapejs }}');
-    const chartStatus = JSON.parse('{{ chart_status|escapejs }}');
-    const chartMonthly = JSON.parse('{{ chart_monthly|escapejs }}');
-    const chartContributors = JSON.parse('{{ chart_contributors|escapejs }}');
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartCategories = JSON.parse("{{ chart_categories|escapejs }}");
+    const chartStatus = JSON.parse("{{ chart_status|escapejs }}");
+    const chartMonthly = JSON.parse("{{ chart_monthly|escapejs }}");
+    const chartContributors = JSON.parse("{{ chart_contributors|escapejs }}");
 
     const colors = [
-        '#4361ee', '#3a0ca3', '#7209b7', '#f72585', '#4cc9f0',
-        '#06d6a0', '#ffd166', '#ef476f', '#118ab2', '#073b4c'
+      "#4361ee",
+      "#3a0ca3",
+      "#7209b7",
+      "#f72585",
+      "#4cc9f0",
+      "#06d6a0",
+      "#ffd166",
+      "#ef476f",
+      "#118ab2",
+      "#073b4c",
     ];
 
     // 1. Biểu đồ cột - Tài liệu theo danh mục
-    new Chart(document.getElementById('chartCategories'), {
-        type: 'bar',
-        data: {
-            labels: chartCategories.labels,
-            datasets: [{
-                label: 'Số tài liệu',
-                data: chartCategories.data,
-                backgroundColor: colors.slice(0, chartCategories.labels.length),
-                borderRadius: 8,
-                borderSkipped: false,
-            }]
+    new Chart(document.getElementById("chartCategories"), {
+      type: "bar",
+      data: {
+        labels: chartCategories.labels,
+        datasets: [
+          {
+            label: "Số tài liệu",
+            data: chartCategories.data,
+            backgroundColor: colors.slice(0, chartCategories.labels.length),
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 },
+          },
+        },
+      },
     });
 
     // 2. Biểu đồ tròn - Trạng thái
-    new Chart(document.getElementById('chartStatus'), {
-        type: 'doughnut',
-        data: {
-            labels: chartStatus.labels,
-            datasets: [{
-                data: chartStatus.data,
-                backgroundColor: ['#ffd166', '#06d6a0', '#ef476f'],
-                borderWidth: 3,
-                borderColor: '#fff',
-            }]
+    new Chart(document.getElementById("chartStatus"), {
+      type: "doughnut",
+      data: {
+        labels: chartStatus.labels,
+        datasets: [
+          {
+            data: chartStatus.data,
+            backgroundColor: ["#ffd166", "#06d6a0", "#ef476f"],
+            borderWidth: 3,
+            borderColor: "#fff",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
+      },
     });
 
     // 3. Biểu đồ đường - Theo tháng
-    new Chart(document.getElementById('chartMonthly'), {
-        type: 'line',
-        data: {
-            labels: chartMonthly.labels,
-            datasets: [{
-                label: 'Tài liệu mới',
-                data: chartMonthly.data,
-                borderColor: '#4361ee',
-                backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#4361ee',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-            }]
+    new Chart(document.getElementById("chartMonthly"), {
+      type: "line",
+      data: {
+        labels: chartMonthly.labels,
+        datasets: [
+          {
+            label: "Tài liệu mới",
+            data: chartMonthly.data,
+            borderColor: "#4361ee",
+            backgroundColor: "rgba(67, 97, 238, 0.1)",
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: "#4361ee",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2,
+            pointRadius: 5,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 },
+          },
+        },
+      },
     });
 
     // 4. Biểu đồ cột ngang - Top đóng góp
-    new Chart(document.getElementById('chartContributors'), {
-        type: 'bar',
-        data: {
-            labels: chartContributors.labels,
-            datasets: [{
-                label: 'Tài liệu',
-                data: chartContributors.data,
-                backgroundColor: colors.slice(0, chartContributors.labels.length),
-                borderRadius: 8,
-                borderSkipped: false,
-            }]
+    new Chart(document.getElementById("chartContributors"), {
+      type: "bar",
+      data: {
+        labels: chartContributors.labels,
+        datasets: [
+          {
+            label: "Tài liệu",
+            data: chartContributors.data,
+            backgroundColor: colors.slice(0, chartContributors.labels.length),
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        indexAxis: "y",
+        plugins: {
+          legend: { display: false },
         },
-        options: {
-            responsive: true,
-            indexAxis: 'y',
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 },
+          },
+        },
+      },
     });
-});
+  });
 </script>
 {% endblock %}

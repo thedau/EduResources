@@ -41,3 +41,10 @@ desktop.ini
 htmlcov/
 .coverage
 .coverage.*
+
+# Temp fix scripts
+fix_templates.py
+fix2.py
+fix3.py
+fix4.py
+validate_templates.py
