@@ -180,23 +180,26 @@
             <p class="card-text text-muted small flex-grow-1">
               {{ resource.description|truncatechars:100 }}
             </p>
-            <div
-              class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top"
-            >
-              <small class="text-muted">
-                <i class="fas fa-user me-1"></i>{{
-                resource.author.full_name|default:resource.author.username }}
-              </small>
-              <div class="text-muted small">
-                <span class="me-2"
-                  ><i class="fas fa-eye me-1"></i>{{ resource.view_count
-                  }}</span
-                >
-                <span
-                  ><i class="fas fa-download me-1"></i>{{
-                  resource.download_count }}</span
-                >
-              </div>
+                        <div class="mt-auto pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                    </small>
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}
+                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        <span class="me-2" title="Lượt xem"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
+                        <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
+                    </div>
+                    {% if resource.average_rating > 0 %}
+                    <small class="text-warning">
+                        <i class="fas fa-star me-1"></i>{{ resource.average_rating }}/5 ({{ resource.comment_count }} đánh giá)
+                    </small>
+                    {% endif %}
+                </div>
             </div>
           </div>
         </div>
@@ -255,23 +258,26 @@
             <p class="card-text text-muted small flex-grow-1">
               {{ resource.description|truncatechars:100 }}
             </p>
-            <div
-              class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top"
-            >
-              <small class="text-muted">
-                <i class="fas fa-user me-1"></i>{{
-                resource.author.full_name|default:resource.author.username }}
-              </small>
-              <div class="text-muted small">
-                <span class="me-2"
-                  ><i class="fas fa-eye me-1"></i>{{ resource.view_count
-                  }}</span
-                >
-                <span
-                  ><i class="fas fa-download me-1"></i>{{
-                  resource.download_count }}</span
-                >
-              </div>
+                        <div class="mt-auto pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                    </small>
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}
+                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        <span class="me-2" title="Lượt xem"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
+                        <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
+                    </div>
+                    {% if resource.average_rating > 0 %}
+                    <small class="text-warning">
+                        <i class="fas fa-star me-1"></i>{{ resource.average_rating }}/5 ({{ resource.comment_count }} đánh giá)
+                    </small>
+                    {% endif %}
+                </div>
             </div>
           </div>
         </div>
