@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Trang chủ{% endblock %}
+
+{% block content %}
+<!-- ===== HERO SECTION ===== -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold text-white mb-4">
+                    Khám phá Kho Tài liệu
+                    <span class="text-warning">Học tập</span>
+                </h1>
+                <p class="lead text-white-50 mb-4">
+                    Nền tảng chia sẻ tài liệu giáo dục hàng đầu. Tìm kiếm, chia sẻ
+                    và kết nối với cộng đồng học tập trực tuyến.
+                </p>
+                <!-- Thanh tìm kiếm -->
+                <form action="{% url 'resources:list' %}" method="get" class="search-hero">
+                    <div class="input-group input-group-lg">
+                        <input type="text" name="q" class="form-control" placeholder="Tìm kiếm tài liệu...">
+                        <button class="btn btn-warning" type="submit">
+                            <i class="fas fa-search me-2"></i>Tìm kiếm
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-lg-6 text-center d-none d-lg-block">
+                <div class="hero-illustration">
+                    <i class="fas fa-book-open-reader"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== THỐNG KÊ ===== -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3 class="fw-bold counter" data-target="{{ stats.total_resources }}">{{ stats.total_resources }}</h3>
+                    <p class="text-muted mb-0">Tài liệu</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success-subtle text-success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="fw-bold counter" data-target="{{ stats.total_users }}">{{ stats.total_users }}</h3>
+                    <p class="text-muted mb-0">Thành viên</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning-subtle text-warning">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <h3 class="fw-bold counter" data-target="{{ stats.total_categories }}">{{ stats.total_categories }}</h3>
+                    <p class="text-muted mb-0">Danh mục</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info-subtle text-info">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <h3 class="fw-bold counter" data-target="{{ stats.total_downloads }}">{{ stats.total_downloads }}</h3>
+                    <p class="text-muted mb-0">Lượt tải</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== DANH MỤC NỔI BẬT ===== -->
+{% if categories %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Danh mục phổ biến</h2>
+            <p class="text-muted">Khám phá tài liệu theo lĩnh vực</p>
+        </div>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'resources:list' %}?category={{ category.pk }}" class="text-decoration-none">
+                    <div class="category-card text-center p-4">
+                        <div class="category-icon mb-3">
+                            <i class="{{ category.icon }}"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">{{ category.name }}</h6>
+                        <span class="badge bg-primary-subtle text-primary">
+                            {{ category.resource_count }} tài liệu
+                        </span>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{% url 'categories:list' %}" class="btn btn-outline-primary">
+                Xem tất cả danh mục <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== TÀI LIỆU MỚI NHẤT ===== -->
+{% if recent_resources %}
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Tài liệu mới nhất</h2>
+                <p class="text-muted mb-0">Cập nhật gần đây</p>
+            </div>
+            <a href="{% url 'resources:list' %}" class="btn btn-outline-primary">
+                Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+        <div class="row g-4">
+            {% for resource in recent_resources %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card resource-card h-100 shadow-sm">
+                    {% if resource.thumbnail %}
+                    <img src="{{ resource.thumbnail.url }}" class="card-img-top resource-thumbnail" alt="{{ resource.title }}">
+                    {% else %}
+                    <div class="card-img-top resource-thumbnail-placeholder">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <span class="badge bg-primary-subtle text-primary">{{ resource.category.name }}</span>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ resource.get_resource_type_display }}</span>
+                        </div>
+                        <h5 class="card-title fw-bold">
+                            <a href="{% url 'resources:detail' resource.slug %}" class="text-decoration-none text-dark stretched-link">
+                                {{ resource.title|truncatechars:60 }}
+                            </a>
+                        </h5>
+                        <p class="card-text text-muted small flex-grow-1">
+                            {{ resource.description|truncatechars:100 }}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                            </small>
+                            <div class="text-muted small">
+                                <span class="me-2"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
+                                <span><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== TÀI LIỆU PHỔ BIẾN ===== -->
+{% if popular_resources %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Tài liệu phổ biến</h2>
+                <p class="text-muted mb-0">Được xem nhiều nhất</p>
+            </div>
+            <a href="{% url 'resources:list' %}?sort=-view_count" class="btn btn-outline-primary">
+                Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+        <div class="row g-4">
+            {% for resource in popular_resources %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card resource-card h-100 shadow-sm">
+                    {% if resource.thumbnail %}
+                    <img src="{{ resource.thumbnail.url }}" class="card-img-top resource-thumbnail" alt="{{ resource.title }}">
+                    {% else %}
+                    <div class="card-img-top resource-thumbnail-placeholder">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <span class="badge bg-primary-subtle text-primary">{{ resource.category.name }}</span>
+                        </div>
+                        <h5 class="card-title fw-bold">
+                            <a href="{% url 'resources:detail' resource.slug %}" class="text-decoration-none text-dark stretched-link">
+                                {{ resource.title|truncatechars:60 }}
+                            </a>
+                        </h5>
+                        <p class="card-text text-muted small flex-grow-1">
+                            {{ resource.description|truncatechars:100 }}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                            </small>
+                            <div class="text-muted small">
+                                <span class="me-2"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
+                                <span><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== CTA SECTION ===== -->
+<section class="cta-section py-5">
+    <div class="container text-center">
+        <h2 class="fw-bold text-white mb-3">Bạn có tài liệu hay muốn chia sẻ?</h2>
+        <p class="text-white-50 mb-4">Đóng góp tài liệu để cùng xây dựng cộng đồng học tập</p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'resources:create' %}" class="btn btn-warning btn-lg px-5">
+            <i class="fas fa-upload me-2"></i>Đăng tài liệu ngay
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:register' %}" class="btn btn-warning btn-lg px-5">
+            <i class="fas fa-user-plus me-2"></i>Đăng ký miễn phí
+        </a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
