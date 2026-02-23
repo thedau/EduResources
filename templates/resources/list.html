@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Tài liệu{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Tiêu đề -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-book me-2"></i>Thư viện Tài liệu</h2>
+            <p class="text-muted mb-0">Khám phá {{ page_obj.paginator.count }} tài liệu</p>
+        </div>
+        {% if user.is_authenticated %}
+        <a href="{% url 'resources:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Đăng tài liệu
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Bộ lọc & Tìm kiếm -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">Tìm kiếm</label>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control"
+                           placeholder="Nhập từ khóa...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-medium">Danh mục</label>
+                    <select name="category" class="form-select">
+                        <option value="">Tất cả</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"d" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-medium">Loại</label>
+                    <select name="type" class="form-select">
+                        <option value="">Tất cả</option>
+                        {% for value, label in resource_types %}
+                        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-medium">Sắp xếp</label>
+                    <select name="sort" class="form-select">
+                        <option value="-created_at" {% if selected_sort == '-created_at' %}selected{% endif %}>Mới nhất</option>
+                        <option value="created_at" {% if selected_sort == 'created_at' %}selected{% endif %}>Cũ nhất</option>
+                        <option value="-view_count" {% if selected_sort == '-view_count' %}selected{% endif %}>Xem nhiều</option>
+                        <option value="-download_count" {% if selected_sort == '-download_count' %}selected{% endif %}>Tải nhiều</option>
+                        <option value="title" {% if selected_sort == 'title' %}selected{% endif %}>A → Z</option>
+                        <option value="-title" {% if selected_sort == '-title' %}selected{% endif %}>Z → A</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-search me-1"></i>Lọc
+                    </button>
+                    <a href="{% url 'resources:list' %}" class="btn btn-outline-secondary" title="Đặt lại">
+                        <i class="fas fa-undo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách tài liệu -->
+    <div class="row g-4">
+        {% for resource in page_obj %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card resource-card h-100 shadow-sm">
+                {% if resource.thumbnail %}
+                <img src="{{ resource.thumbnail.url }}" class="card-img-top resource-thumbnail" alt="{{ resource.title }}">
+                {% else %}
+                <div class="card-img-top resource-thumbnail-placeholder">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-2">
+                        <span class="badge bg-primary-subtle text-primary">{{ resource.category.name }}</span>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ resource.get_resource_type_display }}</span>
+                    </div>
+                    <h5 class="card-title fw-bold">
+                        <a href="{% url 'resources:detail' resource.slug %}" class="text-decoration-none text-dark stretched-link">
+                            {{ resource.title|truncatechars:60 }}
+                        </a>
+                    </h5>
+                    <p class="card-text text-muted small flex-grow-1">
+                        {{ resource.description|truncatechars:100 }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                        </small>
+                        <div class="text-muted small">
+                            <span class="me-2" title="Lượt xem"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
+                            <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Không tìm thấy tài liệu nào</h5>
+                <p class="text-muted">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Phân trang -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&category={{ selected_category }}&type={{ selected_type }}&sort={{ selected_sort }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.paginator.num_pages <= 7 or num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}&q={{ search_query }}&category={{ selected_category }}&type={{ selected_type }}&sort={{ selected_sort }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&category={{ selected_category }}&type={{ selected_type }}&sort={{ selected_sort }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

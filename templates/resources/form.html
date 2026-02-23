@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'resources:my_resources' %}">Tài liệu của tôi</a></li>
+                    <li class="breadcrumb-item active">{{ title }}</li>
+                </ol>
+            </nav>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent">
+                    <h4 class="fw-bold mb-0">
+                        <i class="fas {% if is_edit %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>{{ title }}
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-medium">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                            {% if field.help_text %}
+                            <div class="form-text small">{{ field.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2">
+                            {% for error in form.non_field_errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Hiển thị ảnh và tệp hiện tại khi chỉnh sửa -->
+                        {% if is_edit and resource %}
+                            {% if resource.thumbnail %}
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Ảnh thu nhỏ hiện tại</label>
+                                <div>
+                                    <img src="{{ resource.thumbnail.url }}" alt="Thumbnail" class="img-thumbnail" style="max-height: 150px;">
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if resource.file %}
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Tệp hiện tại</label>
+                                <div>
+                                    <span class="badge bg-secondary">{{ resource.file_extension|upper }}</span>
+                                    {{ resource.file_size_display }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+
+                        <div class="alert alert-info py-2 mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>Tài liệu sẽ được gửi để quản trị viên duyệt trước khi hiển thị công khai.</small>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% if is_edit %}{% url 'resources:detail' resource.slug %}{% else %}{% url 'resources:my_resources' %}{% endif %}" class="btn btn-outline-secondary">
+                                Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                {% if is_edit %}Cập nhật{% else %}Đăng tài liệu{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
