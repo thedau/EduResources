@@ -18,6 +18,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-key-change-in-producti
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+# Cho phép ngrok và các tunnel khác gửi request CSRF
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+CSRF_TRUSTED_ORIGINS = [o for o in CSRF_TRUSTED_ORIGINS if o]  # lọc rỗng
+
 # === ỨNG DỤNG ===
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -145,8 +149,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # === BẢO MẬT PRODUCTION ===
 if not DEBUG:
-    # HTTPS
-    SECURE_SSL_REDIRECT = True
+    # HTTPS (tắt SSL redirect khi dùng ngrok - ngrok tự xử lý SSL)
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
