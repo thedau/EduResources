@@ -5,16 +5,31 @@ quy trình duyệt (phê duyệt/từ chối), tải xuống tệp.
 """
 
 import mimetypes
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.core.cache import cache
+from django.db.models import Q, Avg, Count, F
+from django.http import FileResponse, Http404, JsonResponse
 from .models import Resource, Comment, SubmissionLog
 from .forms import ResourceForm, CommentForm, ResourceRejectForm
 from categories.models import Category
 from accounts.decorators import admin_required
+
+
+def _invalidate_pending_cache():
+    """Xóa cache pending_count khi trạng thái tài liệu thay đổi."""
+    cache.delete('pending_resources_count')
+
+
+def _annotate_resources(queryset):
+    """Annotate queryset với average_rating và comment_count để tránh N+1 queries."""
+    return queryset.annotate(
+        avg_rating=Avg('comments__rating'),
+        num_comments=Count('comments'),
+    )
 
 
 def resource_list(request):
@@ -28,10 +43,12 @@ def resource_list(request):
     resource_type = request.GET.get('type', '')
     sort_by = request.GET.get('sort', '-created_at')
 
-    # Chỉ hiển thị tài liệu đã duyệt
-    resources = Resource.objects.filter(
-        status='approved'
-    ).select_related('category', 'author')
+    # Chỉ hiển thị tài liệu đã duyệt, annotate để tránh N+1
+    resources = _annotate_resources(
+        Resource.objects.filter(
+            status='approved'
+        ).select_related('category', 'author')
+    )
 
     # Tìm kiếm theo tiêu đề và mô tả
     if search_query:
@@ -83,9 +100,12 @@ def resource_list(request):
 def resource_detail(request, slug):
     """
     Hiển thị chi tiết tài liệu kèm bình luận.
-    Tăng lượt xem mỗi lần truy cập.
+    Tăng lượt xem mỗi lần truy cập (dùng F() để tránh race condition).
     """
-    resource = get_object_or_404(Resource, slug=slug)
+    resource = get_object_or_404(
+        Resource.objects.select_related('category', 'author'),
+        slug=slug,
+    )
 
     # Chỉ cho xem tài liệu đã duyệt, hoặc chủ sở hữu/admin
     if resource.status != 'approved':
@@ -94,19 +114,25 @@ def resource_detail(request, slug):
         if not (request.user == resource.author or request.user.is_admin):
             raise Http404
 
-    # Tăng lượt xem
-    resource.view_count += 1
-    resource.save(update_fields=['view_count'])
+    # Tăng lượt xem (atomic, tránh race condition)
+    # Sử dụng session để tránh đếm lại khi refresh trang
+    viewed_key = f'viewed_resource_{resource.pk}'
+    if not request.session.get(viewed_key, False):
+        Resource.objects.filter(pk=resource.pk).update(view_count=F('view_count') + 1)
+        resource.view_count += 1
+        request.session[viewed_key] = True
 
     # Lấy bình luận
     comments = resource.comments.select_related('user').order_by('-created_at')
     comment_form = CommentForm()
 
-    # Tài liệu liên quan (cùng danh mục)
-    related_resources = Resource.objects.filter(
-        category=resource.category,
-        status='approved'
-    ).exclude(pk=resource.pk).order_by('-created_at')[:4]
+    # Tài liệu liên quan (cùng danh mục), annotate rating
+    related_resources = _annotate_resources(
+        Resource.objects.filter(
+            category=resource.category,
+            status='approved'
+        ).exclude(pk=resource.pk).select_related('category')
+    ).order_by('-created_at')[:4]
 
     # Nhật ký duyệt (cho admin và tác giả)
     submission_logs = []
@@ -142,6 +168,7 @@ def resource_create(request):
                 note='Tài liệu mới được gửi'
             )
 
+            _invalidate_pending_cache()
             messages.success(request, 'Tài liệu đã được gửi và đang chờ duyệt.')
             return redirect('resources:my_resources')
         else:
@@ -242,12 +269,16 @@ def my_resources(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Thống kê
+    # Thống kê - 1 query thay vì 4
+    status_counts = dict(
+        request.user.resources.values_list('status').annotate(c=Count('id')).values_list('status', 'c')
+    )
+    total = sum(status_counts.values())
     stats = {
-        'total': request.user.resources.count(),
-        'pending': request.user.resources.filter(status='pending').count(),
-        'approved': request.user.resources.filter(status='approved').count(),
-        'rejected': request.user.resources.filter(status='rejected').count(),
+        'total': total,
+        'pending': status_counts.get('pending', 0),
+        'approved': status_counts.get('approved', 0),
+        'rejected': status_counts.get('rejected', 0),
     }
 
     return render(request, 'resources/my_resources.html', {
@@ -308,6 +339,7 @@ def approve_resource(request, pk):
         )
 
         messages.success(request, f'Đã phê duyệt tài liệu "{resource.title}".')
+        _invalidate_pending_cache()
 
     return redirect('resources:pending')
 
@@ -335,6 +367,7 @@ def reject_resource(request, pk):
             )
 
             messages.success(request, f'Đã từ chối tài liệu "{resource.title}".')
+            _invalidate_pending_cache()
         else:
             messages.error(request, 'Vui lòng nhập lý do từ chối.')
 
@@ -348,9 +381,8 @@ def download_resource(request, slug):
     if not resource.file:
         raise Http404('Tài liệu này không có tệp đính kèm.')
 
-    # Tăng lượt tải
-    resource.download_count += 1
-    resource.save(update_fields=['download_count'])
+    # Tăng lượt tải (atomic)
+    Resource.objects.filter(pk=resource.pk).update(download_count=F('download_count') + 1)
 
     # Trả về tệp
     content_type, _ = mimetypes.guess_type(resource.file.name)
@@ -392,3 +424,55 @@ def delete_comment(request, pk):
         return redirect('resources:detail', slug=slug)
 
     return redirect('resources:detail', slug=comment.resource.slug)
+
+
+def preview_resource(request, slug):
+    """
+    Xem trước tài liệu PDF/Word ngay trên trình duyệt.
+    - PDF: trả về trang preview dùng PDF.js để render
+    - DOCX: chuyển đổi sang HTML bằng mammoth và trả về nội dung
+    - DOC: không hỗ trợ preview trực tiếp
+    """
+    resource = get_object_or_404(Resource, slug=slug, status='approved')
+
+    if not resource.file:
+        raise Http404('Tài liệu này không có tệp đính kèm.')
+
+    ext = resource.file_extension
+    preview_type = None
+    docx_html = None
+
+    if ext == '.pdf':
+        preview_type = 'pdf'
+    elif ext == '.docx':
+        preview_type = 'docx'
+        try:
+            import mammoth
+            with resource.file.open('rb') as f:
+                result = mammoth.convert_to_html(f)
+                docx_html = result.value
+        except Exception:
+            docx_html = '<p class="text-danger">Không thể đọc nội dung tài liệu Word.</p>'
+    elif ext == '.doc':
+        preview_type = 'doc_unsupported'
+    else:
+        preview_type = 'unsupported'
+
+    return render(request, 'resources/preview.html', {
+        'resource': resource,
+        'preview_type': preview_type,
+        'docx_html': docx_html,
+    })
+
+
+def serve_file_inline(request, slug):
+    """Phục vụ tệp PDF inline (không download) để PDF.js có thể đọc."""
+    resource = get_object_or_404(Resource, slug=slug, status='approved')
+
+    if not resource.file or resource.file_extension != '.pdf':
+        raise Http404
+
+    content_type = 'application/pdf'
+    response = FileResponse(resource.file.open('rb'), content_type=content_type)
+    response['Content-Disposition'] = f'inline; filename="{os.path.basename(resource.file.name)}"'
+    return response

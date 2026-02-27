@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block title %}Duyệt tài liệu{% endblock %} {% block content %}
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 page-header-flex">
     <div>
       <h2 class="fw-bold mb-1">
         <i class="fas fa-clock me-2"></i>Duyệt tài liệu
@@ -54,7 +54,7 @@
               {{ resource.title }}
             </a>
           </h5>
-          <div class="text-muted small mb-2">
+          <div class="text-muted small mb-2 pending-resource-meta">
             <span class="me-3"
               ><i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}</span
             >
@@ -72,7 +72,7 @@
           {% endif %}
         </div>
         <div class="col-lg-6">
-          <div class="d-flex justify-content-end gap-2 mt-3 mt-lg-0">
+          <div class="d-flex justify-content-end gap-2 mt-3 mt-lg-0 flex-wrap pending-actions">
             <a
               href="{% url 'resources:detail' resource.slug %}"
               class="btn btn-outline-primary btn-sm"

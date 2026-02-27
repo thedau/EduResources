@@ -125,6 +125,14 @@ class Resource(models.Model):
         verbose_name = 'Tài liệu'
         verbose_name_plural = 'Tài liệu'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', '-created_at'], name='idx_resource_status_created'),
+            models.Index(fields=['status', '-view_count'], name='idx_resource_status_views'),
+            models.Index(fields=['status', '-download_count'], name='idx_resource_status_downloads'),
+            models.Index(fields=['category', 'status'], name='idx_resource_category_status'),
+            models.Index(fields=['author', '-created_at'], name='idx_resource_author_created'),
+            models.Index(fields=['slug'], name='idx_resource_slug'),
+        ]
 
     def __str__(self):
         return self.title
@@ -223,6 +231,9 @@ class Comment(models.Model):
         verbose_name = 'Bình luận'
         verbose_name_plural = 'Bình luận'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['resource', '-created_at'], name='idx_comment_resource_created'),
+        ]
 
     def __str__(self):
         return f"Bình luận của {self.user} về {self.resource}"
@@ -270,6 +281,9 @@ class SubmissionLog(models.Model):
         verbose_name = 'Nhật ký duyệt'
         verbose_name_plural = 'Nhật ký duyệt'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['resource', '-created_at'], name='idx_log_resource_created'),
+        ]
 
     def __str__(self):
         return f"{self.resource} | {self.get_old_status_display()} → {self.get_new_status_display()}"

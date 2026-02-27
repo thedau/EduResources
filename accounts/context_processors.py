@@ -3,6 +3,7 @@ Context processors cho ứng dụng Tài khoản.
 Cung cấp thông tin vai trò người dùng cho tất cả template.
 """
 
+from django.core.cache import cache
 from resources.models import Resource
 
 
@@ -24,8 +25,12 @@ def user_role(request):
             'is_user': request.user.is_user,
             'user_role': request.user.role,
         })
-        # Số tài liệu chờ duyệt (cho Admin hiển thị badge)
+        # Số tài liệu chờ duyệt (cho Admin hiển thị badge) - cached 60s
         if request.user.is_admin:
-            context['pending_count'] = Resource.objects.filter(status='pending').count()
+            pending = cache.get('pending_resources_count')
+            if pending is None:
+                pending = Resource.objects.filter(status='pending').count()
+                cache.set('pending_resources_count', pending, 60)
+            context['pending_count'] = pending
 
     return context

@@ -35,16 +35,19 @@ INSTALLED_APPS = [
     'resources',
     'categories',
     'dashboard',
+    'notifications',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'notifications.middleware.OnlineUsersMiddleware',
 ]
 
 ROOT_URLCONF = 'eduresource.urls'
@@ -146,6 +149,27 @@ MESSAGE_TAGS = {
 
 # Khóa chính mặc định
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# === CACHING ===
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'eduresource-cache',
+        'TIMEOUT': 300,  # 5 phút
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        },
+    }
+}
+
+# === DATABASE OPTIMIZATION ===
+# Persistent database connections (tránh mở/đóng kết nối liên tục)
+if DB_ENGINE == 'django.db.backends.mysql':
+    DATABASES['default']['CONN_MAX_AGE'] = 600  # 10 phút
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+
+# === SESSION ===
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # === BẢO MẬT PRODUCTION ===
 if not DEBUG:

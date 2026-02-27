@@ -61,7 +61,7 @@
 
           <h2 class="fw-bold mb-3">{{ resource.title }}</h2>
 
-          <div class="d-flex flex-wrap gap-3 text-muted mb-4">
+          <div class="d-flex flex-wrap gap-2 gap-md-3 text-muted mb-4 resource-meta-info">
             <span
               ><i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}</span
             >
@@ -98,14 +98,7 @@
 
           <!-- Nút hành động -->
           <div class="d-flex flex-wrap gap-2 pt-3 border-top">
-            {% if resource.file %}
-            <a
-              href="{% url 'resources:download' resource.slug %}"
-              class="btn btn-success"
-            >
-              <i class="fas fa-download me-2"></i>Tải xuống {{ resource.file_size_display }}
-            </a>
-            {% endif %} {% if user.is_authenticated %} {% if user == resource.author or is_admin %}
+            {% if user.is_authenticated %} {% if user == resource.author or is_admin %}
             <a
               href="{% url 'resources:edit' resource.slug %}"
               class="btn btn-outline-primary"
@@ -299,6 +292,14 @@
           >
             <i class="fas fa-download me-2"></i>Tải xuống
           </a>
+          {% if resource.file_extension == '.pdf' or resource.file_extension == '.docx' %}
+          <a
+            href="{% url 'resources:preview' resource.slug %}"
+            class="btn btn-outline-primary w-100 mt-2"
+          >
+            <i class="fas fa-eye me-2"></i>Xem trước tài liệu
+          </a>
+          {% endif %}
         </div>
       </div>
       {% endif %}

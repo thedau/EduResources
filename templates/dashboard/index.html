@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block title %}Bảng điều khiển{% endblock %} {% block content %}
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 page-header-flex">
     <div>
       <h2 class="fw-bold mb-1">
         <i class="fas fa-tachometer-alt me-2"></i>Bảng điều khiển
@@ -12,8 +12,9 @@
     </a>
   </div>
 
+  <!-- Thống kê tổng quan -->\n  <div class=\"row g-4 mb-4 reveal reveal-stagger\">", "oldString": "  <!-- Thống kê tổng quan -->\n  <div class=\"row g-4 mb-4\">
   <!-- Thống kê tổng quan -->
-  <div class="row g-4 mb-4">
+  <div class="row g-4 mb-4 reveal reveal-stagger" id="dashboardStats">
     <div class="col-md-6 col-xl-3">
       <div
         class="card border-0 shadow-sm dashboard-stat-card bg-primary text-white"
@@ -22,7 +23,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <p class="mb-1 text-white-50">Tổng tài liệu</p>
-              <h3 class="fw-bold mb-0">{{ stats.total_resources }}</h3>
+              <h3 class="fw-bold mb-0" id="statTotalResources">{{ stats.total_resources }}</h3>
             </div>
             <div class="dashboard-stat-icon">
               <i class="fas fa-book"></i>
@@ -39,7 +40,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <p class="mb-1 text-white-50">Thành viên</p>
-              <h3 class="fw-bold mb-0">{{ stats.total_users }}</h3>
+              <h3 class="fw-bold mb-0" id="statTotalUsers">{{ stats.total_users }}</h3>
             </div>
             <div class="dashboard-stat-icon">
               <i class="fas fa-users"></i>
@@ -56,7 +57,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <p class="mb-1 text-white-50">Chờ duyệt</p>
-              <h3 class="fw-bold mb-0">{{ stats.pending_resources }}</h3>
+              <h3 class="fw-bold mb-0" id="statPending">{{ stats.pending_resources }}</h3>
             </div>
             <div class="dashboard-stat-icon">
               <i class="fas fa-clock"></i>
@@ -73,7 +74,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <p class="mb-1 text-white-50">Lượt tải</p>
-              <h3 class="fw-bold mb-0">{{ stats.total_downloads }}</h3>
+              <h3 class="fw-bold mb-0" id="statDownloads">{{ stats.total_downloads }}</h3>
             </div>
             <div class="dashboard-stat-icon">
               <i class="fas fa-download"></i>
@@ -85,22 +86,28 @@
   </div>
 
   <div class="row g-4 mb-4">
-    <div class="col-md-4">
+    <div class="col-4 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <p class="text-muted mb-1">Đã duyệt</p>
-        <h4 class="fw-bold text-success">{{ stats.approved_resources }}</h4>
+        <h4 class="fw-bold text-success" id="statApproved">{{ stats.approved_resources }}</h4>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <p class="text-muted mb-1">Từ chối</p>
-        <h4 class="fw-bold text-danger">{{ stats.rejected_resources }}</h4>
+        <h4 class="fw-bold text-danger" id="statRejected">{{ stats.rejected_resources }}</h4>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <p class="text-muted mb-1">Tổng lượt xem</p>
-        <h4 class="fw-bold text-info">{{ stats.total_views }}</h4>
+        <h4 class="fw-bold text-info" id="statViews">{{ stats.total_views }}</h4>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <p class="text-muted mb-1"><i class="fas fa-circle text-success me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>Đang online</p>
+        <h4 class="fw-bold text-primary" id="dashOnlineCount">0</h4>
       </div>
     </div>
   </div>

@@ -83,11 +83,15 @@ def profile(request):
     else:
         form = ProfileForm(instance=request.user)
 
-    # Thống kê cá nhân
+    # Thống kê cá nhân - 1 query thay vì 4
+    from django.db.models import Count, Q
+    res_counts = dict(
+        request.user.resources.values_list('status').annotate(c=Count('id')).values_list('status', 'c')
+    )
     user_stats = {
-        'total_resources': request.user.resources.count(),
-        'approved_resources': request.user.resources.filter(status='approved').count(),
-        'pending_resources': request.user.resources.filter(status='pending').count(),
+        'total_resources': sum(res_counts.values()),
+        'approved_resources': res_counts.get('approved', 0),
+        'pending_resources': res_counts.get('pending', 0),
         'total_comments': request.user.comments.count(),
     }
 

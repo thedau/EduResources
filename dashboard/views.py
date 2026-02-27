@@ -22,21 +22,26 @@ def dashboard(request):
     Bảng điều khiển tổng quan - chỉ Admin.
     Hiển thị thống kê nhanh, hoạt động gần đây, tài liệu chờ duyệt.
     """
-    # Thống kê tổng quan
+    # Thống kê tổng quan - gộp thành ít query nhất
+    resource_agg = Resource.objects.aggregate(
+        total=Count('id'),
+        approved=Count('id', filter=Q(status='approved')),
+        pending=Count('id', filter=Q(status='pending')),
+        rejected=Count('id', filter=Q(status='rejected')),
+        total_downloads=Sum('download_count'),
+        total_views=Sum('view_count'),
+    )
+
     stats = {
         'total_users': User.objects.filter(is_active=True).count(),
-        'total_resources': Resource.objects.count(),
-        'approved_resources': Resource.objects.filter(status='approved').count(),
-        'pending_resources': Resource.objects.filter(status='pending').count(),
-        'rejected_resources': Resource.objects.filter(status='rejected').count(),
+        'total_resources': resource_agg['total'],
+        'approved_resources': resource_agg['approved'],
+        'pending_resources': resource_agg['pending'],
+        'rejected_resources': resource_agg['rejected'],
         'total_categories': Category.objects.count(),
         'total_comments': Comment.objects.count(),
-        'total_downloads': Resource.objects.aggregate(
-            total=Sum('download_count')
-        )['total'] or 0,
-        'total_views': Resource.objects.aggregate(
-            total=Sum('view_count')
-        )['total'] or 0,
+        'total_downloads': resource_agg['total_downloads'] or 0,
+        'total_views': resource_agg['total_views'] or 0,
     }
 
     # Tài liệu chờ duyệt gần đây
@@ -119,14 +124,23 @@ def reports(request):
         'data': [user.resource_count for user in top_contributors],
     }
 
-    # 5. Thống kê tổng hợp
+    # 5. Thống kê tổng hợp - gộp 1 query
+    summary_agg = Resource.objects.aggregate(
+        total=Count('id'),
+        approved=Count('id', filter=Q(status='approved')),
+        pending=Count('id', filter=Q(status='pending')),
+        rejected=Count('id', filter=Q(status='rejected')),
+        total_views=Sum('view_count'),
+        total_downloads=Sum('download_count'),
+    )
+
     summary = {
-        'total_resources': Resource.objects.count(),
-        'approved': Resource.objects.filter(status='approved').count(),
-        'pending': Resource.objects.filter(status='pending').count(),
-        'rejected': Resource.objects.filter(status='rejected').count(),
-        'total_views': Resource.objects.aggregate(total=Sum('view_count'))['total'] or 0,
-        'total_downloads': Resource.objects.aggregate(total=Sum('download_count'))['total'] or 0,
+        'total_resources': summary_agg['total'],
+        'approved': summary_agg['approved'],
+        'pending': summary_agg['pending'],
+        'rejected': summary_agg['rejected'],
+        'total_views': summary_agg['total_views'] or 0,
+        'total_downloads': summary_agg['total_downloads'] or 0,
         'total_comments': Comment.objects.count(),
         'total_users': User.objects.filter(is_active=True).count(),
     }

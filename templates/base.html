@@ -8,6 +8,12 @@
       {% block title %}EduResource{% endblock %} | Thư viện Tài liệu Học tập
     </title>
 
+    <!-- Preconnect để tăng tốc tải tài nguyên ngoài -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <!-- Bootstrap 5.3 CSS -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
@@ -63,6 +69,24 @@
             </li>
           </ul>
 
+          <!-- Live Search -->
+          <div class="nav-search-wrapper me-3 d-none d-lg-block position-relative">
+            <div class="input-group input-group-sm">
+              <input
+                type="text"
+                id="liveSearchInput"
+                class="form-control"
+                placeholder="Tìm kiếm tài liệu..."
+                autocomplete="off"
+                style="min-width: 260px; border-radius: 20px 0 0 20px; border: none; background: rgba(255,255,255,0.15); color: #fff;"
+              />
+              <button class="btn btn-outline-light btn-sm" type="button" style="border-radius: 0 20px 20px 0; border: none; background: rgba(255,255,255,0.1);">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+            <div id="liveSearchResults" class="live-search-dropdown" style="display: none;"></div>
+          </div>
+
           <!-- Menu phải -->
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             {% if user.is_authenticated %} {% if is_admin %}
@@ -73,9 +97,11 @@
                 data-bs-toggle="dropdown"
               >
                 <i class="fas fa-shield-halved me-1"></i>Quản trị {% if pending_count > 0 %}
-                <span class="badge bg-danger rounded-pill"
+                <span class="badge bg-danger rounded-pill" id="navPendingBadge"
                   >{{ pending_count }}</span
                 >
+                {% else %}
+                <span class="badge bg-danger rounded-pill" id="navPendingBadge" style="display:none;"></span>
                 {% endif %}
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
@@ -115,6 +141,45 @@
               </ul>
             </li>
             {% endif %}
+
+            <!-- Online Users Indicator -->
+            <li class="nav-item d-none d-lg-block">
+              <span class="nav-link" style="cursor: default; opacity: 0.85;">
+                <i class="fas fa-circle text-success me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>
+                <span id="onlineCount">0</span> online
+              </span>
+            </li>
+
+            <!-- Notification Bell -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link position-relative"
+                href="#"
+                id="notificationBell"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+              >
+                <i class="fas fa-bell"></i>
+                <span
+                  class="badge bg-danger rounded-pill notification-badge"
+                  id="notifBadge"
+                  style="display: none; position: absolute; top: 2px; right: -2px; font-size: 0.65rem;"
+                ></span>
+              </a>
+              <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 360px; max-height: 450px; overflow-y: auto; padding: 0;">
+                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+                  <h6 class="mb-0 fw-bold"><i class="fas fa-bell me-1"></i>Thông báo</h6>
+                  <button class="btn btn-link btn-sm text-decoration-none p-0" id="markAllReadBtn" style="font-size: 0.8rem;">
+                    Đánh dấu tất cả đã đọc
+                  </button>
+                </div>
+                <div id="notificationList">
+                  <div class="text-center py-4 text-muted">
+                    <i class="fas fa-bell-slash me-1"></i>Không có thông báo
+                  </div>
+                </div>
+              </div>
+            </li>
 
             <li class="nav-item">
               <a class="nav-link" href="{% url 'resources:create' %}">
@@ -308,11 +373,26 @@
 
     <!-- ===== SCRIPTS ===== -->
     <!-- Bootstrap 5.3 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
     <!-- Custom JS -->
-    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/main.js' %}" defer></script>
+    <!-- Real-time Features Config -->
+    <script>
+      window.EDURESOURCE_CONFIG = {
+        isAuthenticated: {% if user.is_authenticated %}true{% else %}false{% endif %},
+        isAdmin: {% if is_admin %}true{% else %}false{% endif %},
+        urls: {
+          notifications: '{% url "notifications:api_notifications" %}',
+          markAllRead: '{% url "notifications:api_mark_all_read" %}',
+          liveSearch: '{% url "notifications:api_live_search" %}',
+          onlineUsers: '{% url "notifications:api_online_users" %}',
+          dashboardStats: '{% url "notifications:api_dashboard_stats" %}',
+          resourceDetail: '{% url "resources:list" %}',
+        },
+        csrfToken: '{{ csrf_token }}',
+      };
+    </script>
+    <script src="{% static 'js/realtime.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
   </body>
 </html>

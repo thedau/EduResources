@@ -159,5 +159,76 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // === Scroll Reveal Animation ===
+  const revealElements = document.querySelectorAll(
+    ".reveal, .reveal-left, .reveal-right, .reveal-scale",
+  );
+
+  if (revealElements.length > 0) {
+    // Kiểm tra prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (prefersReducedMotion) {
+      // Bỏ qua animation nếu người dùng tắt hiệu ứng
+      revealElements.forEach(function (el) {
+        el.classList.add("revealed");
+      });
+    } else {
+      const revealObserver = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("revealed");
+
+              // Nếu có stagger children, reveal chúng
+              if (entry.target.classList.contains("reveal-stagger")) {
+                const children = entry.target.children;
+                for (let i = 0; i < children.length; i++) {
+                  children[i].classList.add("revealed");
+                }
+              }
+
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { root: null, rootMargin: "0px 0px -60px 0px", threshold: 0.1 },
+      );
+
+      revealElements.forEach(function (el) {
+        revealObserver.observe(el);
+      });
+    }
+  }
+
+  // === Tilt effect nhẹ cho resource-card (chỉ desktop) ===
+  if (window.innerWidth > 768) {
+    const tiltCards = document.querySelectorAll(".resource-card");
+    tiltCards.forEach(function (card) {
+      card.addEventListener("mousemove", function (e) {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -3;
+        const rotateY = ((x - centerX) / centerX) * 3;
+
+        card.style.transform =
+          "translateY(-8px) perspective(800px) rotateX(" +
+          rotateX +
+          "deg) rotateY(" +
+          rotateY +
+          "deg)";
+      });
+
+      card.addEventListener("mouseleave", function () {
+        card.style.transform = "";
+      });
+    });
+  }
+
   console.log("EduResource - Tải hoàn tất ✓");
 });

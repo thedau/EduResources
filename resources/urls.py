@@ -15,6 +15,8 @@ urlpatterns = [
     path('<slug:slug>/edit/', views.resource_edit, name='edit'),
     path('<slug:slug>/delete/', views.resource_delete, name='delete'),
     path('<slug:slug>/download/', views.download_resource, name='download'),
+    path('<slug:slug>/preview/', views.preview_resource, name='preview'),
+    path('<slug:slug>/file/', views.serve_file_inline, name='serve_file'),
 
     # Bình luận
     path('<slug:slug>/comment/', views.add_comment, name='add_comment'),

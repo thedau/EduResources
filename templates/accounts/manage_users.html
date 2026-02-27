@@ -116,12 +116,12 @@
               <form
                 method="post"
                 action="{% url 'accounts:update_user_role' u.pk %}"
-                class="d-inline"
+                class="d-inline user-role-form"
               >
                 {% csrf_token %}
                 <div
                   class="input-group input-group-sm"
-                  style="width: 200px; display: inline-flex"
+                  style="min-width: 150px; max-width: 200px; display: inline-flex"
                 >
                   <select name="role" class="form-select form-select-sm">
                     {% for value, label in roles %}

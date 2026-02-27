@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Trang chủ{% endblock %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% load resource_tags %} {% block title %}Trang chủ{% endblock %} {% block content %}
 <!-- ===== HERO SECTION ===== -->
 <section class="hero-section">
   <div class="container">
@@ -18,16 +18,19 @@
           method="get"
           class="search-hero"
         >
-          <div class="input-group input-group-lg">
+          <div class="input-group input-group-lg position-relative">
             <input
               type="text"
               name="q"
+              id="heroSearchInput"
               class="form-control"
               placeholder="Tìm kiếm tài liệu..."
+              autocomplete="off"
             />
             <button class="btn btn-warning" type="submit">
               <i class="fas fa-search me-2"></i>Tìm kiếm
             </button>
+            <div id="heroSearchResults" class="live-search-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1050;"></div>
           </div>
         </form>
       </div>
@@ -43,7 +46,7 @@
 <!-- ===== THỐNG KÊ ===== -->
 <section class="py-5 bg-white">
   <div class="container">
-    <div class="row g-4 text-center">
+    <div class="row g-4 text-center reveal reveal-stagger">
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="stat-icon bg-primary-subtle text-primary">
@@ -99,11 +102,11 @@
 {% if categories %}
 <section class="py-5 bg-light">
   <div class="container">
-    <div class="text-center mb-5">
+    <div class="text-center mb-5 reveal">
       <h2 class="fw-bold">Danh mục phổ biến</h2>
       <p class="text-muted">Khám phá tài liệu theo lĩnh vực</p>
     </div>
-    <div class="row g-4">
+    <div class="row g-4 reveal reveal-stagger">
       {% for category in categories %}
       <div class="col-6 col-md-4 col-lg-3">
         <a
@@ -136,7 +139,7 @@
 {% if recent_resources %}
 <section class="py-5">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 reveal">
       <div>
         <h2 class="fw-bold mb-1">Tài liệu mới nhất</h2>
         <p class="text-muted mb-0">Cập nhật gần đây</p>
@@ -145,15 +148,16 @@
         Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
       </a>
     </div>
-    <div class="row g-4">
+    <div class="row g-4 reveal reveal-stagger">
       {% for resource in recent_resources %}
-      <div class="col-md-6 col-lg-4">
+      <div class="col-6 col-md-6 col-lg-4">
         <div class="card resource-card h-100 shadow-sm">
           {% if resource.thumbnail %}
           <img
             src="{{ resource.thumbnail.url }}"
             class="card-img-top resource-thumbnail"
             alt="{{ resource.title }}"
+            loading="lazy"
           />
           {% else %}
           <div class="card-img-top resource-thumbnail-placeholder">
@@ -165,7 +169,7 @@
               <span class="badge bg-primary-subtle text-primary"
                 >{{ resource.category.name }}</span
               >
-              <span class="badge bg-secondary-subtle text-secondary"
+              <span class="badge bg-secondary-subtle text-secondary d-none d-md-inline"
                 >{{ resource.get_resource_type_display }}</span
               >
             </div>
@@ -177,16 +181,16 @@
                 {{ resource.title|truncatechars:60 }}
               </a>
             </h5>
-            <p class="card-text text-muted small flex-grow-1">
+            <p class="card-text text-muted small flex-grow-1 d-none d-md-block">
               {{ resource.description|truncatechars:100 }}
             </p>
                         <div class="mt-auto pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">
-                        <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                        <i class="fas fa-user me-1"></i><span class="d-none d-sm-inline">{{ resource.author.full_name|default:resource.author.username }}</span><span class="d-sm-none">{{ resource.author.username }}</span>
                     </small>
-                    <small class="text-muted">
-                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}
+                    <small class="text-muted d-none d-sm-inline">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y" }}
                     </small>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -194,9 +198,9 @@
                         <span class="me-2" title="Lượt xem"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
                         <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
                     </div>
-                    {% if resource.average_rating > 0 %}
-                    <small class="text-warning">
-                        <i class="fas fa-star me-1"></i>{{ resource.average_rating }}/5 ({{ resource.comment_count }} đánh giá)
+                    {% if resource.avg_rating %}
+                    <small class="text-warning d-none d-sm-inline">
+                        <i class="fas fa-star me-1"></i>{{ resource.avg_rating|rating_display }}/5
                     </small>
                     {% endif %}
                 </div>
@@ -214,7 +218,7 @@
 {% if popular_resources %}
 <section class="py-5 bg-light">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 reveal">
       <div>
         <h2 class="fw-bold mb-1">Tài liệu phổ biến</h2>
         <p class="text-muted mb-0">Được xem nhiều nhất</p>
@@ -226,15 +230,16 @@
         Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
       </a>
     </div>
-    <div class="row g-4">
+    <div class="row g-4 reveal reveal-stagger">
       {% for resource in popular_resources %}
-      <div class="col-md-6 col-lg-4">
+      <div class="col-6 col-md-6 col-lg-4">
         <div class="card resource-card h-100 shadow-sm">
           {% if resource.thumbnail %}
           <img
             src="{{ resource.thumbnail.url }}"
             class="card-img-top resource-thumbnail"
             alt="{{ resource.title }}"
+            loading="lazy"
           />
           {% else %}
           <div class="card-img-top resource-thumbnail-placeholder">
@@ -255,16 +260,16 @@
                 {{ resource.title|truncatechars:60 }}
               </a>
             </h5>
-            <p class="card-text text-muted small flex-grow-1">
+            <p class="card-text text-muted small flex-grow-1 d-none d-md-block">
               {{ resource.description|truncatechars:100 }}
             </p>
                         <div class="mt-auto pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">
-                        <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                        <i class="fas fa-user me-1"></i><span class="d-none d-sm-inline">{{ resource.author.full_name|default:resource.author.username }}</span><span class="d-sm-none">{{ resource.author.username }}</span>
                     </small>
-                    <small class="text-muted">
-                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}
+                    <small class="text-muted d-none d-sm-inline">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y" }}
                     </small>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -272,9 +277,9 @@
                         <span class="me-2" title="Lượt xem"><i class="fas fa-eye me-1"></i>{{ resource.view_count }}</span>
                         <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
                     </div>
-                    {% if resource.average_rating > 0 %}
-                    <small class="text-warning">
-                        <i class="fas fa-star me-1"></i>{{ resource.average_rating }}/5 ({{ resource.comment_count }} đánh giá)
+                    {% if resource.avg_rating %}
+                    <small class="text-warning d-none d-sm-inline">
+                        <i class="fas fa-star me-1"></i>{{ resource.avg_rating|rating_display }}/5
                     </small>
                     {% endif %}
                 </div>
@@ -290,7 +295,7 @@
 
 <!-- ===== CTA SECTION ===== -->
 <section class="cta-section py-5">
-  <div class="container text-center">
+  <div class="container text-center reveal-scale reveal">
     <h2 class="fw-bold text-white mb-3">Bạn có tài liệu hay muốn chia sẻ?</h2>
     <p class="text-white-50 mb-4">
       Đóng góp tài liệu để cùng xây dựng cộng đồng học tập
