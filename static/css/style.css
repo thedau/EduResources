@@ -1169,3 +1169,58 @@ a:hover {
 #onlineCount {
   font-weight: 600;
 }
+
+/* === AI FEATURES === */
+/* Typing dots animation */
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 0;
+}
+.typing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* Chat messages */
+#chatMessages::-webkit-scrollbar {
+  width: 6px;
+}
+#chatMessages::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+/* AI Summary card */
+#aiSummaryContent {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+#aiSummaryContent h4,
+#aiSummaryContent h5,
+#aiSummaryContent h6 {
+  color: var(--primary);
+}
+#aiSummaryContent ul {
+  padding-left: 1.2rem;
+}
+#aiSummaryContent li {
+  margin-bottom: 0.3rem;
+}
+
+/* AI Tag card */
+#aiTagCard .badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+}

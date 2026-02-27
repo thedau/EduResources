@@ -84,6 +84,25 @@
               >
             </div>
 
+            <!-- AI Auto-tag Suggestion -->
+            {% if user.is_authenticated %}
+            <div class="card border-success mt-3" id="aiTagCard">
+              <div class="card-header bg-success bg-opacity-10 py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0 text-success small">
+                    <i class="fas fa-magic me-1"></i>Gợi ý AI
+                  </h6>
+                  <button type="button" class="btn btn-success btn-sm" id="aiSuggestBtn">
+                    <i class="fas fa-wand-magic-sparkles me-1"></i>Phân tích
+                  </button>
+                </div>
+              </div>
+              <div class="card-body py-2" id="aiTagResult" style="display: none;">
+                <div id="aiTagContent"></div>
+              </div>
+            </div>
+            {% endif %}
+
             <div class="d-flex justify-content-end gap-2 mt-4">
               <a
                 href="{% if is_edit %}{% url 'resources:detail' resource.slug %}{% else %}{% url 'resources:my_resources' %}{% endif %}"
@@ -102,4 +121,140 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const suggestBtn = document.getElementById('aiSuggestBtn');
+  const tagResult = document.getElementById('aiTagResult');
+  const tagContent = document.getElementById('aiTagContent');
+
+  if (!suggestBtn) return;
+
+  suggestBtn.addEventListener('click', async function() {
+    const title = document.getElementById('id_title')?.value?.trim() || '';
+    const description = document.getElementById('id_description')?.value?.trim() || '';
+    const content = document.getElementById('id_content')?.value?.trim() || '';
+
+    if (!title) {
+      alert('Vui lòng nhập tiêu đề trước khi phân tích.');
+      return;
+    }
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang phân tích...';
+    btn.disabled = true;
+
+    try {
+      const config = window.EDURESOURCE_CONFIG;
+      const body = { title, description, content };
+
+      // Nếu đang edit, gửi kèm resource_id
+      {% if is_edit and resource %}
+      body.resource_id = {{ resource.pk }};
+      {% endif %}
+
+      const resp = await fetch(config.urls.aiSuggestTags, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': config.csrfToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        const s = data.suggestions;
+        let html = '';
+
+        if (s.category) {
+          html += `<div class="mb-2"><small class="text-muted">Danh mục gợi ý:</small> <span class="badge bg-primary">${escapeHtml(s.category)}</span>`;
+          // Auto-select category in dropdown
+          const catSelect = document.getElementById('id_category');
+          if (catSelect) {
+            for (let opt of catSelect.options) {
+              if (opt.text.trim().toLowerCase() === s.category.toLowerCase()) {
+                html += ` <button type="button" class="btn btn-link btn-sm p-0 ms-1 ai-apply-cat" data-value="${opt.value}" style="font-size: 0.75rem;">Áp dụng</button>`;
+                break;
+              }
+            }
+          }
+          html += `</div>`;
+        }
+
+        if (s.resource_type) {
+          const typeMap = { document: 'Tài liệu', video: 'Video', presentation: 'Bài trình bày', exercise: 'Bài tập', other: 'Khác' };
+          html += `<div class="mb-2"><small class="text-muted">Loại:</small> <span class="badge bg-secondary">${typeMap[s.resource_type] || s.resource_type}</span>`;
+          const typeSelect = document.getElementById('id_resource_type');
+          if (typeSelect) {
+            for (let opt of typeSelect.options) {
+              if (opt.value === s.resource_type) {
+                html += ` <button type="button" class="btn btn-link btn-sm p-0 ms-1 ai-apply-type" data-value="${opt.value}" style="font-size: 0.75rem;">Áp dụng</button>`;
+                break;
+              }
+            }
+          }
+          html += `</div>`;
+        }
+
+        if (s.tags && s.tags.length > 0) {
+          html += `<div class="mb-2"><small class="text-muted">Từ khóa:</small> `;
+          s.tags.forEach(tag => {
+            html += `<span class="badge bg-info bg-opacity-75 me-1">${escapeHtml(tag)}</span>`;
+          });
+          html += `</div>`;
+        }
+
+        if (s.reason) {
+          html += `<div><small class="text-muted"><i class="fas fa-lightbulb me-1"></i>${escapeHtml(s.reason)}</small></div>`;
+        }
+
+        if (s.confidence) {
+          const pct = Math.round(s.confidence * 100);
+          html += `<div class="mt-1"><small class="text-muted">Độ tin cậy: </small><div class="progress" style="height: 6px; display: inline-block; width: 100px; vertical-align: middle;"><div class="progress-bar bg-success" style="width: ${pct}%"></div></div> <small>${pct}%</small></div>`;
+        }
+
+        tagContent.innerHTML = html;
+        tagResult.style.display = 'block';
+
+        // Bind apply buttons
+        document.querySelectorAll('.ai-apply-cat').forEach(btn => {
+          btn.addEventListener('click', function() {
+            document.getElementById('id_category').value = this.dataset.value;
+            this.innerHTML = '✓ Đã áp dụng';
+            this.disabled = true;
+          });
+        });
+        document.querySelectorAll('.ai-apply-type').forEach(btn => {
+          btn.addEventListener('click', function() {
+            document.getElementById('id_resource_type').value = this.dataset.value;
+            this.innerHTML = '✓ Đã áp dụng';
+            this.disabled = true;
+          });
+        });
+      } else {
+        tagContent.innerHTML = `<div class="text-danger small"><i class="fas fa-exclamation-circle me-1"></i>${data.error}</div>`;
+        tagResult.style.display = 'block';
+      }
+    } catch (err) {
+      tagContent.innerHTML = '<div class="text-danger small"><i class="fas fa-exclamation-circle me-1"></i>Lỗi kết nối.</div>';
+      tagResult.style.display = 'block';
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  });
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+});
+</script>
+{% endif %}
 {% endblock %}

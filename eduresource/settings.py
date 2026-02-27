@@ -36,7 +36,11 @@ INSTALLED_APPS = [
     'categories',
     'dashboard',
     'notifications',
+    'ai_features',
 ]
+
+# === GEMINI AI ===
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

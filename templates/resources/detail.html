@@ -98,7 +98,26 @@
 
           <!-- Nút hành động -->
           <div class="d-flex flex-wrap gap-2 pt-3 border-top">
-            {% if user.is_authenticated %} {% if user == resource.author or is_admin %}
+            {% if user.is_authenticated %}
+            <!-- AI Summarize Button -->
+            <button
+              type="button"
+              class="btn btn-outline-info"
+              id="aiSummarizeBtn"
+              data-slug="{{ resource.slug }}"
+            >
+              <i class="fas fa-magic me-2"></i>AI Tóm tắt
+            </button>
+            <!-- AI Chat Button -->
+            <button
+              type="button"
+              class="btn btn-outline-success"
+              data-bs-toggle="modal"
+              data-bs-target="#aiChatModal"
+            >
+              <i class="fas fa-robot me-2"></i>Hỏi AI
+            </button>
+            {% if user == resource.author or is_admin %}
             <a
               href="{% url 'resources:edit' resource.slug %}"
               class="btn btn-outline-primary"
@@ -114,6 +133,18 @@
               <i class="fas fa-trash me-2"></i>Xóa
             </button>
             {% endif %} {% endif %}
+          </div>
+
+          <!-- AI Summary Result -->
+          <div id="aiSummaryResult" class="mt-3" style="display: none;">
+            <div class="card border-info">
+              <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-info"><i class="fas fa-magic me-2"></i>Tóm tắt bởi AI</h6>
+                <button type="button" class="btn-close btn-sm" onclick="document.getElementById('aiSummaryResult').style.display='none'"></button>
+              </div>
+              <div class="card-body" id="aiSummaryContent">
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -371,3 +402,244 @@
   </div>
 </div>
 {% endif %} {% endblock %}
+
+{% block extra_js %}
+{% if user.is_authenticated %}
+<!-- AI Chat Modal -->
+<div class="modal fade" id="aiChatModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success bg-opacity-10">
+        <h5 class="modal-title text-success">
+          <i class="fas fa-robot me-2"></i>Trợ giảng AI - {{ resource.title|truncatechars:40 }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="chatMessages" class="p-3" style="height: 400px; overflow-y: auto; background: #f8f9fa;">
+          <!-- Welcome message -->
+          <div class="d-flex mb-3">
+            <div class="flex-shrink-0">
+              <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                <i class="fas fa-robot"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <div class="bg-white rounded-3 p-3 shadow-sm" style="max-width: 85%;">
+                <p class="mb-1">Xin chào! 👋 Tôi là trợ giảng AI.</p>
+                <p class="mb-1">Tôi có thể giúp bạn hiểu rõ hơn về tài liệu <strong>"{{ resource.title }}"</strong>.</p>
+                <p class="mb-0 text-muted small">Hãy hỏi bất cứ điều gì về nội dung tài liệu!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="border-top p-3">
+          <div class="input-group">
+            <input
+              type="text"
+              id="chatInput"
+              class="form-control"
+              placeholder="Nhập câu hỏi của bạn..."
+              autocomplete="off"
+              maxlength="1000"
+            />
+            <button class="btn btn-success" type="button" id="chatSendBtn">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="text-muted small mt-1">
+            <i class="fas fa-info-circle me-1"></i>AI trả lời dựa trên nội dung tài liệu. Nhấn Enter để gửi.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const csrfToken = window.EDURESOURCE_CONFIG.csrfToken;
+  const slug = '{{ resource.slug }}';
+
+  // ===== AI SUMMARIZE =====
+  const summarizeBtn = document.getElementById('aiSummarizeBtn');
+  const summaryResult = document.getElementById('aiSummaryResult');
+  const summaryContent = document.getElementById('aiSummaryContent');
+
+  if (summarizeBtn) {
+    summarizeBtn.addEventListener('click', async function() {
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tóm tắt...';
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(`/api/ai/summarize/${slug}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+          summaryContent.innerHTML = formatMarkdown(data.summary);
+          summaryResult.style.display = 'block';
+          summaryResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          alert(data.error || 'Không thể tóm tắt.');
+        }
+      } catch (err) {
+        alert('Lỗi kết nối. Vui lòng thử lại.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // ===== AI CHATBOT =====
+  const chatInput = document.getElementById('chatInput');
+  const chatSendBtn = document.getElementById('chatSendBtn');
+  const chatMessages = document.getElementById('chatMessages');
+  let chatHistory = [];
+
+  function addMessage(role, content) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'd-flex mb-3';
+
+    const isUser = role === 'user';
+    msgDiv.innerHTML = `
+      <div class="d-flex ${isUser ? 'flex-row-reverse ms-auto' : ''} ${isUser ? '' : 'flex-grow-1'}">
+        <div class="flex-shrink-0 ${isUser ? 'ms-2' : ''}">
+          <div class="rounded-circle ${isUser ? 'bg-primary' : 'bg-success'} text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+            <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
+          </div>
+        </div>
+        <div class="${isUser ? 'me-2' : 'ms-2'}">
+          <div class="${isUser ? 'bg-primary text-white' : 'bg-white shadow-sm'} rounded-3 p-3" style="max-width: 85%;">
+            ${isUser ? escapeHtml(content) : formatMarkdown(content)}
+          </div>
+        </div>
+      </div>
+    `;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function addTypingIndicator() {
+    const div = document.createElement('div');
+    div.className = 'd-flex mb-3';
+    div.id = 'typingIndicator';
+    div.innerHTML = `
+      <div class="flex-shrink-0">
+        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+          <i class="fas fa-robot"></i>
+        </div>
+      </div>
+      <div class="ms-2">
+        <div class="bg-white rounded-3 p-3 shadow-sm">
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    `;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    chatInput.value = '';
+    chatSendBtn.disabled = true;
+    chatInput.disabled = true;
+
+    addMessage('user', message);
+    addTypingIndicator();
+
+    try {
+      const resp = await fetch(`/api/ai/chat/${slug}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          history: chatHistory,
+        }),
+      });
+      const data = await resp.json();
+      removeTypingIndicator();
+
+      if (data.success) {
+        chatHistory.push({ role: 'user', content: message });
+        chatHistory.push({ role: 'assistant', content: data.reply });
+        addMessage('assistant', data.reply);
+      } else {
+        addMessage('assistant', '❌ ' + (data.error || 'Lỗi không xác định.'));
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage('assistant', '❌ Lỗi kết nối. Vui lòng thử lại.');
+    } finally {
+      chatSendBtn.disabled = false;
+      chatInput.disabled = false;
+      chatInput.focus();
+    }
+  }
+
+  if (chatSendBtn) {
+    chatSendBtn.addEventListener('click', sendMessage);
+  }
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  // ===== UTILITY =====
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function formatMarkdown(text) {
+    if (!text) return '';
+    // Bold
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Code blocks
+    text = text.replace(/```([\s\S]*?)```/g, '<pre class="bg-dark text-light p-2 rounded"><code>$1</code></pre>');
+    // Inline code
+    text = text.replace(/`(.*?)`/g, '<code class="bg-light px-1 rounded">$1</code>');
+    // Headers
+    text = text.replace(/^### (.*$)/gm, '<h6 class="fw-bold mt-2">$1</h6>');
+    text = text.replace(/^## (.*$)/gm, '<h5 class="fw-bold mt-2">$1</h5>');
+    text = text.replace(/^# (.*$)/gm, '<h4 class="fw-bold mt-2">$1</h4>');
+    // Lists
+    text = text.replace(/^\- (.*$)/gm, '<li>$1</li>');
+    text = text.replace(/^\d+\. (.*$)/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*<\/li>)/s, '<ul class="mb-2">$1</ul>');
+    // Line breaks
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

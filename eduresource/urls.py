@@ -19,6 +19,7 @@ urlpatterns = [
     path('categories/', include('categories.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('', include('notifications.urls')),
+    path('', include('ai_features.urls')),
 ]
 
 # Phục vụ tệp media trong chế độ phát triển
