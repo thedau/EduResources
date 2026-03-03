@@ -76,31 +76,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'eduresource.wsgi.application'
 
-# === CƠ SỞ DỮ LIỆU ===
-DB_ENGINE = os.getenv('DB_ENGINE', 'django.db.backends.sqlite3')
-
-if DB_ENGINE == 'django.db.backends.mysql':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'eduresource'),
-            'USER': os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
+# === CƠ SỞ DỮ LIỆU (MySQL) ===
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'eduresource'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # === XÁC THỰC ===
 AUTH_USER_MODEL = 'accounts.User'
@@ -169,9 +159,8 @@ CACHES = {
 
 # === DATABASE OPTIMIZATION ===
 # Persistent database connections (tránh mở/đóng kết nối liên tục)
-if DB_ENGINE == 'django.db.backends.mysql':
-    DATABASES['default']['CONN_MAX_AGE'] = 600  # 10 phút
-    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+DATABASES['default']['CONN_MAX_AGE'] = 600  # 10 phút
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 # === SESSION ===
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'

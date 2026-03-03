@@ -73,7 +73,7 @@
 | Thành phần | Công nghệ |
 |------------|-----------|
 | Backend | Django 4.2 (Python 3.12) |
-| Database | MySQL 8.0 / SQLite 3 |
+| Database | MySQL 8.0 |
 | Frontend | Bootstrap 5.3, Font Awesome 6, Google Fonts (Inter) |
 | Charts | Chart.js 4.4 |
 | AI | Groq API (LLaMA 3.3 70B Versatile) |
@@ -146,7 +146,7 @@ EduResources/
 ### Yêu cầu
 - Python 3.10+
 - pip (Python package manager)
-- MySQL 8.0+ (hoặc dùng SQLite mặc định)
+- MySQL 8.0+
 
 ### Bước 1: Clone dự án
 
@@ -182,17 +182,12 @@ Tạo file `.env` tại thư mục gốc:
 SECRET_KEY=your-secret-key-here
 DEBUG=True
 
-# === Database ===
-# SQLite (mặc định - không cần cấu hình thêm)
-DB_ENGINE=sqlite3
-
-# MySQL (bỏ comment nếu dùng MySQL)
-# DB_ENGINE=django.db.backends.mysql
-# DB_NAME=eduresource
-# DB_USER=root
-# DB_PASSWORD=your_password
-# DB_HOST=localhost
-# DB_PORT=3306
+# === Database (MySQL) ===
+DB_NAME=eduresource
+DB_USER=root
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=3306
 
 # === AI (Groq) ===
 GROQ_API_KEY=your_groq_api_key_here
@@ -418,10 +413,11 @@ CSRF_TRUSTED_ORIGINS=https://your-subdomain.ngrok-free.app
 |------|-------|----------|
 | `SECRET_KEY` | Django secret key | dev key |
 | `DEBUG` | Chế độ debug | True |
-| `DB_ENGINE` | Database engine | sqlite3 |
-| `DB_NAME` | Tên database | eduresource |
+| `DB_NAME` | Tên database (MySQL) | eduresource |
 | `DB_USER` | Database user | root |
 | `DB_PASSWORD` | Database password | (rỗng) |
+| `DB_HOST` | Database host | localhost |
+| `DB_PORT` | Database port | 3306 |
 | `GROQ_API_KEY` | Groq API key cho AI | (rỗng) |
 | `CSRF_TRUSTED_ORIGINS` | Trusted origins | (rỗng) |
 
