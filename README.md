@@ -1,114 +1,149 @@
-# EduResource - Thư viện Tài liệu Học tập
+# EduResource - Thư viện Tài liệu Học tập Trực tuyến
 
 ## 📋 Giới thiệu
 
-**EduResource** là hệ thống quản lý và chia sẻ tài liệu học tập trực tuyến, được xây dựng bằng Django Framework. Hệ thống cho phép người dùng đăng tải, quản lý và tìm kiếm tài liệu học tập theo danh mục, với quy trình phê duyệt đảm bảo chất lượng nội dung.
+**EduResource** là hệ thống quản lý và chia sẻ tài liệu học tập trực tuyến, được xây dựng bằng **Django Framework**. Hệ thống cho phép người dùng đăng tải, quản lý và tìm kiếm tài liệu học tập theo danh mục, với quy trình phê duyệt đảm bảo chất lượng nội dung. Tích hợp **AI (Groq LLaMA 3.3)** để tóm tắt tài liệu, chatbot hỗ trợ học tập, và gợi ý phân loại tự động.
 
 ## ✨ Tính năng chính
 
 ### 🔐 Quản lý người dùng
-
 - Đăng ký / Đăng nhập / Đăng xuất
 - Quản lý hồ sơ cá nhân (avatar, thông tin, bio)
 - Phân quyền 3 vai trò: **Khách** / **Người dùng** / **Quản trị viên**
-- Quên mật khẩu và đặt lại mật khẩu
+- Đổi mật khẩu, quên mật khẩu và đặt lại mật khẩu (token-based)
 - Admin quản lý và phân quyền người dùng
 
 ### 📚 Quản lý tài liệu
-
 - CRUD tài liệu (Tạo, Xem, Sửa, Xóa)
-- Phân loại theo danh mục và loại tài liệu
-- Upload file đính kèm và ảnh minh họa
-- Hệ thống trạng thái: Chờ duyệt → Đã duyệt / Từ chối
-- Đếm lượt xem và lượt tải
-- Nhật ký phê duyệt chi tiết
+- Phân loại theo danh mục và loại tài liệu (Tài liệu, Video, Bài trình bày, Bài tập, Khác)
+- Upload file đính kèm (PDF, DOCX, PPTX, XLSX, ZIP...) và ảnh thumbnail
+- Xem trước file trực tiếp trên trình duyệt (PDF.js cho PDF, mammoth cho DOCX)
+- Quy trình duyệt: **Chờ duyệt → Đã duyệt / Từ chối** (kèm lý do)
+- Đếm lượt xem (atomic, chống trùng bằng session) và lượt tải xuống
+- Nhật ký phê duyệt chi tiết (SubmissionLog)
+- Tự động sinh slug từ tiêu đề tiếng Việt (unidecode)
 
 ### 📂 Quản lý danh mục
-
 - CRUD danh mục (Admin)
-- Danh mục cha-con (phân cấp)
-- Icon tùy chỉnh cho mỗi danh mục
+- Danh mục phân cấp cha-con (self-referencing FK)
+- Icon tùy chỉnh Font Awesome cho mỗi danh mục
+- Bảo vệ xóa: không cho xóa danh mục có tài liệu
 
 ### 🔍 Tìm kiếm & Lọc
-
-- Tìm kiếm theo từ khóa
+- Tìm kiếm theo từ khóa (tiêu đề, mô tả, nội dung)
+- Tìm kiếm tức thì (Live Search) với AJAX debounce 300ms
 - Lọc theo danh mục, loại tài liệu
-- Sắp xếp theo nhiều tiêu chí
+- Sắp xếp: mới nhất, cũ nhất, nhiều lượt xem, nhiều lượt tải, theo tên
 - Phân trang danh sách
 
 ### 💬 Bình luận & Đánh giá
+- Bình luận trên tài liệu kèm đánh giá sao (1-5)
+- Tính điểm trung bình tự động
+- Xóa bình luận (tác giả hoặc Admin)
 
-- Bình luận trên tài liệu
-- Đánh giá sao (1-5 sao)
-- Quản lý bình luận
+### 🔔 Thông báo Real-time
+- Thông báo tự động khi: tài liệu được duyệt/từ chối, có bình luận mới, tài liệu mới chờ duyệt
+- AJAX polling mỗi 15 giây
+- Đánh dấu đã đọc (từng thông báo hoặc tất cả)
+- Hiển thị số người đang online (UserActivity tracking)
 
 ### 📊 Dashboard & Báo cáo (Admin)
+- Thống kê tổng quan (người dùng, tài liệu, lượt xem, lượt tải, bình luận)
+- Biểu đồ cột: phân bố tài liệu theo danh mục
+- Biểu đồ tròn: trạng thái tài liệu
+- Biểu đồ đường: xu hướng tài liệu theo tháng (12 tháng gần nhất)
+- Biểu đồ ngang: top người đóng góp
+- Live dashboard stats (cập nhật mỗi 30 giây)
 
-- Thống kê tổng quan (người dùng, tài liệu, lượt xem)
-- Biểu đồ phân bố theo danh mục
-- Biểu đồ trạng thái tài liệu
-- Biểu đồ xu hướng theo tháng
-- Top đóng góp viên
+### 🤖 Tích hợp AI (Groq LLaMA 3.3 70B)
+- **Tóm tắt tài liệu**: Trích xuất nội dung từ file (PDF/DOCX/TXT) rồi tóm tắt bằng AI
+- **Chatbot trợ giảng**: Hỏi đáp về nội dung tài liệu cụ thể (có lịch sử hội thoại)
+- **Gợi ý phân loại**: AI đề xuất danh mục, loại tài liệu, và tags phù hợp
+- **Chatbot tổng quát (EduBot)**: Widget chatbot nổi trên toàn bộ website, hỗ trợ tìm tài liệu, hướng dẫn sử dụng
+
+### 🎨 Giao diện
+- Responsive design (Bootstrap 5.3)
+- Hỗ trợ Dark mode
+- Navbar glassmorphism trên mobile
+- Chatbot widget nổi (floating)
+- Trang lỗi tùy chỉnh (403, 404, 429, 500)
 
 ## 🛠 Công nghệ sử dụng
 
-| Thành phần | Công nghệ                                 |
-| ---------- | ----------------------------------------- |
-| Backend    | Django 4.2+ (Python)                      |
-| Database   | MySQL / SQLite                            |
-| Frontend   | Bootstrap 5.3, Font Awesome 6             |
-| Charts     | Chart.js 4.4                              |
-| Font       | Google Fonts (Inter)                      |
-| Auth       | Django Authentication (Custom User Model) |
+| Thành phần | Công nghệ |
+|------------|-----------|
+| Backend | Django 4.2 (Python 3.12) |
+| Database | MySQL 8.0 / SQLite 3 |
+| Frontend | Bootstrap 5.3, Font Awesome 6, Google Fonts (Inter) |
+| Charts | Chart.js 4.4 |
+| AI | Groq API (LLaMA 3.3 70B Versatile) |
+| File Processing | PyPDF2 (PDF), mammoth (DOCX), PDF.js (preview) |
+| Real-time | AJAX Polling (Fetch API) |
+| Rate Limiting | django-ratelimit |
+| Caching | Django LocMemCache |
+| Security | CSRF, Rate Limiting, Token-based Password Reset |
 
 ## 📁 Cấu trúc dự án
 
 ```
 EduResources/
-├── eduresource/          # Cấu hình project Django
-│   ├── settings.py       # Cài đặt
-│   ├── urls.py           # URL gốc
-│   ├── views.py          # View trang chủ
-│   ├── wsgi.py           # WSGI config
-│   └── asgi.py           # ASGI config
-├── accounts/             # App quản lý người dùng
-│   ├── models.py         # Model User tùy chỉnh
-│   ├── views.py          # Đăng nhập, đăng ký, profile
-│   ├── forms.py          # Form xác thực
-│   ├── decorators.py     # Decorator phân quyền
-│   └── context_processors.py
-├── categories/           # App quản lý danh mục
-│   ├── models.py         # Model Category
-│   ├── views.py          # CRUD danh mục
-│   └── forms.py          # Form danh mục
-├── resources/            # App quản lý tài liệu
-│   ├── models.py         # Resource, Comment, SubmissionLog
-│   ├── views.py          # CRUD, duyệt, bình luận
-│   ├── forms.py          # Form tài liệu
-│   └── management/       # Lệnh seed_data
-├── dashboard/            # App dashboard admin
-│   └── views.py          # Thống kê, báo cáo
-├── templates/            # Template HTML
-│   ├── base.html         # Layout chính
-│   ├── home.html         # Trang chủ
-│   ├── accounts/         # Template tài khoản
-│   ├── resources/        # Template tài liệu
-│   ├── categories/       # Template danh mục
-│   └── dashboard/        # Template dashboard
-├── static/               # File tĩnh
-│   ├── css/style.css     # CSS tùy chỉnh
-│   └── js/main.js        # JavaScript
-├── media/                # File upload
-├── manage.py             # Django CLI
-├── requirements.txt      # Dependencies
-├── .env                  # Biến môi trường
-└── README.md             # Tài liệu dự án
+├── eduresource/              # Cấu hình project Django
+│   ├── settings.py           # Cài đặt (DB, cache, security, Groq API)
+│   ├── urls.py               # URL gốc + error handlers
+│   ├── views.py              # Trang chủ + custom error pages
+│   ├── wsgi.py               # WSGI config
+│   └── asgi.py               # ASGI config
+├── accounts/                 # App quản lý người dùng
+│   ├── models.py             # Model User tùy chỉnh (AbstractUser)
+│   ├── views.py              # Đăng nhập, đăng ký, profile, quản lý users
+│   ├── forms.py              # RegisterForm, LoginForm, ProfileForm, ...
+│   ├── decorators.py         # @admin_required, @authenticated_required
+│   └── context_processors.py # user_role context (pending_count cache)
+├── categories/               # App quản lý danh mục
+│   ├── models.py             # Model Category (self-referencing)
+│   ├── views.py              # CRUD danh mục
+│   └── forms.py              # CategoryForm
+├── resources/                # App quản lý tài liệu
+│   ├── models.py             # Resource, Comment, SubmissionLog
+│   ├── views.py              # CRUD, duyệt, bình luận, download, preview
+│   ├── forms.py              # ResourceForm, CommentForm, ResourceRejectForm
+│   ├── templatetags/         # Custom template filter (rating_display)
+│   └── management/commands/  # seed_data command
+├── dashboard/                # App dashboard & báo cáo (Admin)
+│   └── views.py              # Thống kê tổng quan + biểu đồ Chart.js
+├── notifications/            # App thông báo real-time
+│   ├── models.py             # Notification, UserActivity
+│   ├── views.py              # API: notifications, live search, online users
+│   ├── signals.py            # Auto-create notifications on events
+│   └── middleware.py         # OnlineUsersMiddleware (last_seen tracking)
+├── ai_features/              # App tính năng AI
+│   ├── services.py           # Groq API: summarize, chat, suggest, general_chat
+│   ├── views.py              # API endpoints cho AI features
+│   └── urls.py               # 4 API routes
+├── templates/                # Template HTML
+│   ├── base.html             # Layout chính + chatbot widget
+│   ├── home.html             # Trang chủ
+│   ├── 403.html, 404.html,   # Trang lỗi tùy chỉnh
+│   │   429.html, 500.html
+│   ├── accounts/             # 7 template: login, register, profile, ...
+│   ├── resources/            # 6 template: list, detail, form, preview, ...
+│   ├── categories/           # 2 template: list, form
+│   └── dashboard/            # 2 template: index, reports
+├── static/
+│   ├── css/style.css         # CSS tùy chỉnh (~2000 dòng, dark mode)
+│   └── js/
+│       ├── main.js           # JS chính + chatbot widget (~480 dòng)
+│       └── realtime.js       # AJAX polling: notifications, search, online (~350 dòng)
+├── media/                    # File upload (avatars, resources)
+├── manage.py
+├── requirements.txt
+├── .env                      # Biến môi trường (SECRET_KEY, DB, GROQ_API_KEY)
+└── README.md
 ```
 
 ## 🚀 Hướng dẫn cài đặt
 
 ### Yêu cầu
-
 - Python 3.10+
 - pip (Python package manager)
 - MySQL 8.0+ (hoặc dùng SQLite mặc định)
@@ -123,54 +158,52 @@ cd EduResources
 ### Bước 2: Tạo môi trường ảo
 
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # Linux/Mac
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### Bước 3: Cài đặt thư viện
 
 ```bash
 pip install -r requirements.txt
+pip install groq
 ```
 
 ### Bước 4: Cấu hình môi trường
 
-Sao chép file `.env.example` thành `.env` và chỉnh sửa:
-
-```bash
-copy .env.example .env    # Windows
-cp .env.example .env      # Linux/Mac
-```
-
-Chỉnh sửa file `.env`:
+Tạo file `.env` tại thư mục gốc:
 
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
 
-# Sử dụng SQLite (mặc định)
+# === Database ===
+# SQLite (mặc định - không cần cấu hình thêm)
 DB_ENGINE=sqlite3
 
-# Hoặc sử dụng MySQL
-# DB_ENGINE=mysql
-# DB_NAME=eduresource_db
+# MySQL (bỏ comment nếu dùng MySQL)
+# DB_ENGINE=django.db.backends.mysql
+# DB_NAME=eduresource
 # DB_USER=root
 # DB_PASSWORD=your_password
 # DB_HOST=localhost
 # DB_PORT=3306
+
+# === AI (Groq) ===
+GROQ_API_KEY=your_groq_api_key_here
 ```
+
+> 💡 Lấy Groq API key miễn phí tại: https://console.groq.com/keys
 
 ### Bước 5: Chạy migrations
 
 ```bash
-python manage.py makemigrations accounts
-python manage.py makemigrations categories
-python manage.py makemigrations resources
+python manage.py makemigrations accounts categories resources notifications
 python manage.py migrate
 ```
 
@@ -180,7 +213,13 @@ python manage.py migrate
 python manage.py seed_data
 ```
 
-### Bước 7: Chạy server
+### Bước 7: Thu thập file tĩnh
+
+```bash
+python manage.py collectstatic --noinput
+```
+
+### Bước 8: Chạy server
 
 ```bash
 python manage.py runserver
@@ -190,306 +229,201 @@ Truy cập: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ## 👤 Tài khoản mẫu
 
-| Vai trò       | Tài khoản    | Mật khẩu   | Quyền hạn           |
-| ------------- | ------------ | ---------- | ------------------- |
-| Quản trị viên | `admin`      | `admin123` | Toàn quyền quản lý  |
-| Người dùng 1  | `nguyenvana` | `user123`  | Đăng tải, bình luận |
-| Người dùng 2  | `tranthib`   | `user123`  | Đăng tải, bình luận |
-| Người dùng 3  | `levanc`     | `user123`  | Đăng tải, bình luận |
-| Người dùng 4  | `phamthid`   | `user123`  | Đăng tải, bình luận |
-| Khách         | `khach`      | `guest123` | Chỉ xem             |
+| Vai trò | Tài khoản | Mật khẩu | Quyền hạn |
+|---------|-----------|----------|-----------|
+| Quản trị viên | `admin` | `admin123` | Toàn quyền quản lý |
+| Người dùng 1 | `nguyenvana` | `user123` | Đăng tải, bình luận |
+| Người dùng 2 | `tranthib` | `user123` | Đăng tải, bình luận |
+| Người dùng 3 | `levanc` | `user123` | Đăng tải, bình luận |
+| Người dùng 4 | `phamthid` | `user123` | Đăng tải, bình luận |
+| Khách | `khach` | `guest123` | Chỉ xem |
 
 ## 📊 Mô hình dữ liệu
 
-### Các thực thể chính (5+)
+### Các thực thể (7 bảng)
 
-1. **User** - Người dùng (kế thừa AbstractUser)
-   - Các trường: full_name, phone, avatar, bio, role
-   - Vai trò: guest, user, admin
+| # | Thực thể | App | Mô tả |
+|---|----------|-----|-------|
+| 1 | **User** | accounts | Người dùng (kế thừa AbstractUser), 3 vai trò: guest/user/admin |
+| 2 | **Category** | categories | Danh mục phân cấp cha-con (self-referencing FK) |
+| 3 | **Resource** | resources | Tài liệu học tập - thực thể trung tâm |
+| 4 | **Comment** | resources | Bình luận + đánh giá sao (1-5) |
+| 5 | **SubmissionLog** | resources | Nhật ký quy trình duyệt tài liệu |
+| 6 | **Notification** | notifications | Thông báo real-time cho người dùng |
+| 7 | **UserActivity** | notifications | Theo dõi trạng thái online (last_seen) |
 
-2. **Category** - Danh mục
-   - Các trường: name, slug, description, icon, parent, is_active
-   - Hỗ trợ phân cấp cha-con
+### Quan hệ giữa các thực thể
 
-3. **Resource** - Tài liệu
-   - Các trường: title, slug, description, content, resource_type, category, author, file, thumbnail, status, view_count, download_count
-   - Trạng thái: pending, approved, rejected
-
-4. **Comment** - Bình luận
-   - Các trường: resource, user, content, rating
-   - Đánh giá 1-5 sao
-
-5. **SubmissionLog** - Nhật ký phê duyệt
-   - Các trường: resource, reviewer, old_status, new_status, note
-   - Theo dõi quá trình duyệt tài liệu
-
-### Quan hệ
-
-- User (1) → (N) Resource (tác giả)
-- Category (1) → (N) Resource
-- Category (1) → (N) Category (cha-con)
-- Resource (1) → (N) Comment
-- Resource (1) → (N) SubmissionLog
-- User (1) → (N) Comment
-- User (1) → (N) SubmissionLog (người duyệt)
+| Quan hệ | Kiểu | Mô tả |
+|---------|------|-------|
+| User → Resource | 1:N | Một người dùng tạo nhiều tài liệu |
+| User → Comment | 1:N | Một người dùng viết nhiều bình luận |
+| User → Notification | 1:N | Một người dùng nhận nhiều thông báo |
+| User → UserActivity | 1:1 | Mỗi người dùng có một bản ghi hoạt động |
+| User → SubmissionLog | 1:N | Một admin duyệt nhiều tài liệu |
+| Category → Resource | 1:N | Một danh mục chứa nhiều tài liệu |
+| Category → Category | 1:N | Danh mục cha chứa nhiều danh mục con |
+| Resource → Comment | 1:N | Một tài liệu có nhiều bình luận |
+| Resource → SubmissionLog | 1:N | Một tài liệu có nhiều bản ghi duyệt |
 
 ## 🔒 Phân quyền
 
-| Chức năng                 | Khách | Người dùng | Admin |
-| ------------------------- | :---: | :--------: | :---: |
-| Xem trang chủ             |  ✅   |     ✅     |  ✅   |
-| Xem danh sách tài liệu    |  ✅   |     ✅     |  ✅   |
-| Xem chi tiết tài liệu     |  ✅   |     ✅     |  ✅   |
-| Đăng tải tài liệu         |  ❌   |     ✅     |  ✅   |
-| Sửa/Xóa tài liệu của mình |  ❌   |     ✅     |  ✅   |
-| Bình luận & đánh giá      |  ❌   |     ✅     |  ✅   |
-| Quản lý danh mục          |  ❌   |     ❌     |  ✅   |
-| Phê duyệt tài liệu        |  ❌   |     ❌     |  ✅   |
-| Dashboard & Báo cáo       |  ❌   |     ❌     |  ✅   |
-| Quản lý người dùng        |  ❌   |     ❌     |  ✅   |
+| Chức năng | Khách | Người dùng | Admin |
+|-----------|:-----:|:----------:|:-----:|
+| Xem trang chủ, danh sách, chi tiết tài liệu | ✅ | ✅ | ✅ |
+| Tìm kiếm, lọc tài liệu | ✅ | ✅ | ✅ |
+| Đăng tải tài liệu | ❌ | ✅ | ✅ |
+| Sửa/Xóa tài liệu của mình | ❌ | ✅ | ✅ |
+| Tải xuống file đính kèm | ❌ | ✅ | ✅ |
+| Bình luận & đánh giá | ❌ | ✅ | ✅ |
+| Sử dụng AI (tóm tắt, chatbot) | ❌ | ✅ | ✅ |
+| Nhận thông báo | ❌ | ✅ | ✅ |
+| Quản lý danh mục (CRUD) | ❌ | ❌ | ✅ |
+| Phê duyệt / Từ chối tài liệu | ❌ | ❌ | ✅ |
+| Dashboard & Báo cáo thống kê | ❌ | ❌ | ✅ |
+| Quản lý người dùng & phân quyền | ❌ | ❌ | ✅ |
+
+## 📡 API Endpoints
+
+### Tài khoản
+
+| Method | Endpoint | Mô tả | Quyền | Rate Limit |
+|--------|----------|-------|-------|------------|
+| GET/POST | `/accounts/register/` | Đăng ký | Public | 10/giờ |
+| GET/POST | `/accounts/login/` | Đăng nhập | Public | 10/phút |
+| GET | `/accounts/logout/` | Đăng xuất | Login | — |
+| GET/POST | `/accounts/profile/` | Hồ sơ cá nhân | Login | — |
+| GET/POST | `/accounts/change-password/` | Đổi mật khẩu | Login | — |
+| GET/POST | `/accounts/forgot-password/` | Quên mật khẩu | Public | 5/giờ |
+| GET/POST | `/accounts/reset-password/<uidb64>/<token>/` | Đặt lại mật khẩu | Token | — |
+| GET | `/accounts/manage-users/` | Quản lý người dùng | Admin | — |
+| POST | `/accounts/update-role/<user_id>/` | Cập nhật vai trò | Admin | — |
+
+### Tài liệu
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/resources/` | Danh sách (tìm kiếm, lọc, sắp xếp, phân trang) | Public |
+| GET/POST | `/resources/create/` | Tạo tài liệu | Login |
+| GET | `/resources/my/` | Tài liệu của tôi | Login |
+| GET | `/resources/pending/` | Chờ duyệt | Admin |
+| GET | `/resources/<slug>/` | Chi tiết | Public |
+| GET/POST | `/resources/<slug>/edit/` | Sửa | Tác giả/Admin |
+| POST | `/resources/<slug>/delete/` | Xóa | Tác giả/Admin |
+| GET | `/resources/<slug>/download/` | Tải file | Login |
+| GET | `/resources/<slug>/preview/` | Xem trước (PDF.js/mammoth) | Public |
+| POST | `/resources/<slug>/comment/` | Thêm bình luận | Login |
+| POST | `/resources/<pk>/approve/` | Phê duyệt | Admin |
+| POST | `/resources/<pk>/reject/` | Từ chối | Admin |
+
+### Danh mục
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/categories/` | Danh sách (tìm kiếm, phân trang) | Public |
+| GET/POST | `/categories/create/` | Tạo mới | Admin |
+| GET/POST | `/categories/<pk>/edit/` | Sửa | Admin |
+| POST | `/categories/<pk>/delete/` | Xóa | Admin |
+
+### Dashboard
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/dashboard/` | Tổng quan | Admin |
+| GET | `/dashboard/reports/` | Báo cáo (4 biểu đồ Chart.js) | Admin |
+
+### Thông báo & Real-time (JSON API)
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/api/notifications/` | Danh sách thông báo + số chưa đọc | Login |
+| POST | `/api/notifications/<pk>/read/` | Đánh dấu đã đọc | Login |
+| POST | `/api/notifications/read-all/` | Đánh dấu tất cả đã đọc | Login |
+| GET | `/api/search/?q=<keyword>` | Tìm kiếm tức thì | Public |
+| GET | `/api/online-users/` | Số người đang online | Public |
+| GET | `/api/dashboard-stats/` | Thống kê real-time | Admin |
+
+### AI (JSON API)
+
+| Method | Endpoint | Mô tả | Quyền | Rate Limit |
+|--------|----------|-------|-------|------------|
+| POST | `/api/ai/summarize/<slug>/` | Tóm tắt tài liệu bằng AI | Login | 20/giờ |
+| POST | `/api/ai/chat/<slug>/` | Chat hỏi đáp về tài liệu | Login | 60/giờ |
+| POST | `/api/ai/suggest-tags/` | Gợi ý danh mục & tags | Login | — |
+| POST | `/api/ai/general-chat/` | Chatbot tổng quát (EduBot) | Login | 60/giờ |
+
+### Mã lỗi HTTP
+
+| Code | Ý nghĩa | Xử lý |
+|------|---------|-------|
+| 200 | Thành công | — |
+| 302 | Chuyển hướng | Redirect |
+| 400 | Dữ liệu không hợp lệ | JSON `{"success": false, "error": "..."}` |
+| 403 | Không có quyền | Trang 403 tùy chỉnh |
+| 404 | Không tìm thấy | Trang 404 tùy chỉnh |
+| 429 | Vượt rate limit | Trang 429 tùy chỉnh |
+| 500 | Lỗi server | Trang 500 tùy chỉnh |
+
+## 📝 Quy trình nghiệp vụ
+
+### Quy trình đăng tải & duyệt tài liệu
+
+```
+Người dùng đăng tải → [Chờ duyệt] → Admin xem xét
+                                        ├── Phê duyệt → [Đã duyệt] → Công khai
+                                        └── Từ chối   → [Từ chối]  → Kèm lý do
+
+* Nếu người dùng sửa tài liệu đã duyệt → Tự động chuyển về [Chờ duyệt]
+* Mọi thay đổi trạng thái → Ghi nhật ký (SubmissionLog) + Gửi thông báo
+```
+
+### Luồng xử lý AI
+
+```
+Upload tài liệu (PDF/DOCX/TXT)
+    → Trích xuất nội dung văn bản (PyPDF2/mammoth)
+    → Gửi đến Groq API (LLaMA 3.3 70B)
+    → Trả về: tóm tắt / câu trả lời / gợi ý tags
+    → Cache kết quả trong session (giảm API calls)
+```
 
 ## 🧪 Chạy Tests
 
 ```bash
-python manage.py test
+python manage.py test                    # Tất cả
+python manage.py test accounts           # Test app accounts
+python manage.py test resources          # Test app resources
+python manage.py test categories         # Test app categories
+python manage.py test dashboard          # Test app dashboard
+python manage.py test notifications      # Test app notifications
+python manage.py test ai_features        # Test app ai_features
 ```
 
-Hoặc chạy test từng app:
+## 🔧 Cấu hình nâng cao
+
+### Sử dụng ngrok (truy cập từ internet)
 
 ```bash
-python manage.py test accounts
-python manage.py test categories
-python manage.py test resources
-python manage.py test dashboard
+ngrok http 8000
 ```
 
-## � Tài liệu API
-
-Hệ thống cung cấp các API endpoint (trả về JSON) phục vụ các tính năng real-time và AI.
-
-### 1. API Xác thực & Tài khoản
-
-| Method | Endpoint | Mô tả | Quyền | Rate Limit |
-|--------|----------|-------|-------|------------|
-| GET/POST | `/accounts/register/` | Đăng ký tài khoản | Public | 10 req/giờ (POST) |
-| GET/POST | `/accounts/login/` | Đăng nhập | Public | 10 req/phút (POST) |
-| GET | `/accounts/logout/` | Đăng xuất | Login | — |
-| GET/POST | `/accounts/profile/` | Xem/cập nhật hồ sơ | Login | — |
-| GET/POST | `/accounts/change-password/` | Đổi mật khẩu | Login | — |
-| GET/POST | `/accounts/forgot-password/` | Quên mật khẩu | Public | 5 req/giờ (POST) |
-| GET/POST | `/accounts/reset-password/<uidb64>/<token>/` | Đặt lại mật khẩu | Public (token) | — |
-| GET | `/accounts/manage-users/` | Quản lý người dùng | Admin | — |
-| POST | `/accounts/update-role/<user_id>/` | Cập nhật vai trò | Admin | — |
-
-### 2. API Tài liệu (Resources)
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/resources/` | Danh sách tài liệu (tìm kiếm, lọc, sắp xếp, phân trang) | Public |
-| GET/POST | `/resources/create/` | Tạo tài liệu mới | User/Admin |
-| GET | `/resources/my/` | Tài liệu của tôi | Login |
-| GET | `/resources/pending/` | Tài liệu chờ duyệt | Admin |
-| GET | `/resources/<slug>/` | Chi tiết tài liệu | Public |
-| GET/POST | `/resources/<slug>/edit/` | Sửa tài liệu | Tác giả/Admin |
-| POST | `/resources/<slug>/delete/` | Xóa tài liệu | Tác giả/Admin |
-| GET | `/resources/<slug>/download/` | Tải file tài liệu | Login |
-| GET | `/resources/<slug>/preview/` | Xem trước file (PDF.js/mammoth) | Public |
-| GET | `/resources/<slug>/file/` | Phục vụ file inline | Public |
-
-**Query Parameters cho `/resources/`:**
-
-| Param | Kiểu | Mô tả | Ví dụ |
-|-------|------|-------|-------|
-| `q` | string | Từ khóa tìm kiếm (tiêu đề, mô tả, nội dung) | `?q=python` |
-| `category` | int | ID danh mục lọc | `?category=3` |
-| `type` | string | Loại tài liệu (`document`, `video`, `image`, `audio`, `other`) | `?type=document` |
-| `sort` | string | Sắp xếp (`-created_at`, `created_at`, `-view_count`, `title`, `-download_count`) | `?sort=-view_count` |
-| `page` | int | Số trang (9 items/trang) | `?page=2` |
-
-### 3. API Bình luận & Đánh giá
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| POST | `/resources/<slug>/comment/` | Thêm bình luận + đánh giá sao (1-5) | User/Admin |
-| POST | `/resources/comment/<pk>/delete/` | Xóa bình luận | Tác giả bình luận/Admin |
-
-### 4. API Phê duyệt tài liệu
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| POST | `/resources/<pk>/approve/` | Phê duyệt tài liệu (pending → approved) | Admin |
-| POST | `/resources/<pk>/reject/` | Từ chối tài liệu (pending → rejected, kèm lý do) | Admin |
-
-### 5. API Danh mục
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/categories/` | Danh sách danh mục (tìm kiếm, phân trang) | Public |
-| GET/POST | `/categories/create/` | Tạo danh mục mới | Admin |
-| GET/POST | `/categories/<pk>/edit/` | Sửa danh mục | Admin |
-| POST | `/categories/<pk>/delete/` | Xóa danh mục (không cho xóa nếu có tài liệu) | Admin |
-
-### 6. API Dashboard & Báo cáo
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/dashboard/` | Trang tổng quan (thống kê, pending, logs, top resources) | Admin |
-| GET | `/dashboard/reports/` | Trang báo cáo (4 biểu đồ Chart.js + thống kê) | Admin |
-
-### 7. API Thông báo Real-time (JSON)
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/api/notifications/` | Lấy danh sách thông báo + số chưa đọc | Login |
-| POST | `/api/notifications/<pk>/read/` | Đánh dấu thông báo đã đọc | Login |
-| POST | `/api/notifications/read-all/` | Đánh dấu tất cả đã đọc | Login |
-
-**Response `/api/notifications/`:**
-```json
-{
-  "unread_count": 3,
-  "notifications": [
-    {
-      "id": 1,
-      "type": "resource_approved",
-      "title": "Tài liệu đã được duyệt",
-      "message": "Tài liệu 'Python cơ bản' đã được phê duyệt.",
-      "link": "/resources/python-co-ban/",
-      "is_read": false,
-      "icon_class": "fas fa-check-circle text-success",
-      "created_at": "28/02/2026 10:30",
-      "time_ago": "5 phút trước"
-    }
-  ]
-}
+Thêm domain ngrok vào `.env`:
+```env
+CSRF_TRUSTED_ORIGINS=https://your-subdomain.ngrok-free.app
 ```
 
-### 8. API Tìm kiếm Tức thì (JSON)
+### Biến môi trường (.env)
 
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/api/search/?q=<keyword>` | Tìm kiếm real-time (debounce 300ms, tối thiểu 2 ký tự) | Public |
-
-**Response `/api/search/?q=python`:**
-```json
-{
-  "results": [
-    {
-      "title": "Python cơ bản",
-      "slug": "python-co-ban",
-      "category": "Tin học",
-      "author": "Nguyễn Văn A",
-      "type": "Tài liệu",
-      "type_raw": "document",
-      "view_count": 150,
-      "rating": 4.5,
-      "thumbnail": "/media/resources/thumbnails/python.jpg",
-      "created_at": "15/01/2026"
-    }
-  ],
-  "total": 5,
-  "query": "python"
-}
-```
-
-### 9. API Online Users & Dashboard Stats (JSON)
-
-| Method | Endpoint | Mô tả | Quyền |
-|--------|----------|-------|-------|
-| GET | `/api/online-users/` | Số người đang online (active trong 5 phút) | Public |
-| GET | `/api/dashboard-stats/` | Thống kê real-time cho dashboard | Admin |
-
-**Response `/api/online-users/`:**
-```json
-{
-  "online_count": 12
-}
-```
-
-**Response `/api/dashboard-stats/`:**
-```json
-{
-  "total_resources": 45,
-  "total_users": 20,
-  "pending_resources": 3,
-  "approved_resources": 38,
-  "rejected_resources": 4,
-  "total_downloads": 1250,
-  "total_views": 8900,
-  "total_comments": 120,
-  "online_count": 12
-}
-```
-
-### 10. API Tính năng AI (JSON)
-
-| Method | Endpoint | Mô tả | Quyền | Rate Limit |
-|--------|----------|-------|-------|------------|
-| POST | `/api/ai/summarize/<slug>/` | Tóm tắt tài liệu bằng AI (Gemini) | Login | 20 req/giờ |
-| POST | `/api/ai/chat/<slug>/` | Chatbot hỏi đáp về tài liệu | Login | 60 req/giờ |
-| POST | `/api/ai/suggest-tags/` | Gợi ý danh mục & tags cho tài liệu | Login | — |
-
-**Request `/api/ai/chat/<slug>/`:**
-```json
-{
-  "message": "Tài liệu này nói về gì?",
-  "history": [
-    {"role": "user", "content": "Xin chào"},
-    {"role": "assistant", "content": "Chào bạn! Tôi có thể giúp gì?"}
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "reply": "Tài liệu này trình bày về các khái niệm cơ bản..."
-}
-```
-
-**Request `/api/ai/suggest-tags/`:**
-```json
-{
-  "title": "Giáo trình Python",
-  "description": "Tài liệu học Python cơ bản",
-  "content": "Nội dung chi tiết...",
-  "resource_id": 5
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "suggestions": {
-    "category": "Tin học",
-    "tags": ["python", "lập trình", "cơ bản"]
-  }
-}
-```
-
-### Mã lỗi HTTP
-
-| Code | Ý nghĩa | Trang lỗi |
-|------|---------|-----------|
-| 200 | Thành công | — |
-| 302 | Chuyển hướng (redirect) | — |
-| 400 | Dữ liệu không hợp lệ | JSON `{"success": false, "error": "..."}` |
-| 403 | Không có quyền truy cập | Trang 403 tùy chỉnh |
-| 404 | Không tìm thấy | Trang 404 tùy chỉnh |
-| 429 | Vượt giới hạn rate limit | Trang 429 tùy chỉnh |
-| 500 | Lỗi server | Trang 500 tùy chỉnh |
-
-## �📝 Quy trình nghiệp vụ
-
-### Quy trình đăng tải tài liệu
-
-1. Người dùng tạo tài liệu mới → Trạng thái: **Chờ duyệt**
-2. Admin xem danh sách tài liệu chờ duyệt
-3. Admin **Phê duyệt** → Trạng thái: **Đã duyệt** (hiển thị công khai)
-4. Hoặc Admin **Từ chối** → Trạng thái: **Bị từ chối** (kèm lý do)
-5. Mọi thay đổi trạng thái được ghi vào **Nhật ký phê duyệt**
+| Biến | Mô tả | Mặc định |
+|------|-------|----------|
+| `SECRET_KEY` | Django secret key | dev key |
+| `DEBUG` | Chế độ debug | True |
+| `DB_ENGINE` | Database engine | sqlite3 |
+| `DB_NAME` | Tên database | eduresource |
+| `DB_USER` | Database user | root |
+| `DB_PASSWORD` | Database password | (rỗng) |
+| `GROQ_API_KEY` | Groq API key cho AI | (rỗng) |
+| `CSRF_TRUSTED_ORIGINS` | Trusted origins | (rỗng) |
 
 ## 📄 License
 
@@ -497,4 +431,4 @@ Dự án được phát triển cho mục đích học tập.
 
 ---
 
-**EduResource** - Nền tảng chia sẻ tài liệu học tập © 2024
+**EduResource** - Nền tảng chia sẻ tài liệu học tập © 2026

@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timedelta
 from django.shortcuts import render
 from django.db.models import Count, Sum, Q
-from django.db.models.functions import TruncMonth, TruncDay
+from django.db.models.functions import ExtractYear, ExtractMonth
 from django.http import JsonResponse
 from django.utils import timezone
 from resources.models import Resource, Comment, SubmissionLog
@@ -102,16 +102,18 @@ def reports(request):
     # 3. Tài liệu theo tháng (biểu đồ đường - 12 tháng gần nhất)
     twelve_months_ago = timezone.now() - timedelta(days=365)
     monthly_data = Resource.objects.filter(
-        created_at__gte=twelve_months_ago
+        created_at__gte=twelve_months_ago,
+        created_at__isnull=False,
     ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
+        year=ExtractYear('created_at'),
+        month=ExtractMonth('created_at'),
+    ).values('year', 'month').annotate(
         count=Count('id')
-    ).order_by('month')
+    ).order_by('year', 'month')
 
     chart_monthly = {
-        'labels': [item['month'].strftime('%m/%Y') for item in monthly_data],
-        'data': [item['count'] for item in monthly_data],
+        'labels': [f"{item['month']:02d}/{item['year']}" for item in monthly_data if item['year'] and item['month']],
+        'data': [item['count'] for item in monthly_data if item['year'] and item['month']],
     }
 
     # 4. Top người đóng góp (biểu đồ cột ngang)
