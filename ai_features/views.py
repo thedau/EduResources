@@ -8,11 +8,13 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django_ratelimit.decorators import ratelimit
 from resources.models import Resource
-from .services import summarize_resource, chat_about_resource, suggest_tags, _extract_file_content
+from .services import summarize_resource, chat_about_resource, suggest_tags, general_chat, _extract_file_content
 
 
 @login_required
+@ratelimit(key='user', rate='20/h', method='POST', block=True)
 @require_POST
 def api_summarize(request, slug):
     """API tóm tắt tài liệu bằng AI."""
@@ -39,6 +41,7 @@ def api_summarize(request, slug):
 
 
 @login_required
+@ratelimit(key='user', rate='60/h', method='POST', block=True)
 @require_POST
 def api_chat(request, slug):
     """API chatbot hỏi đáp về tài liệu."""
@@ -103,3 +106,30 @@ def api_suggest_tags(request):
         return JsonResponse({'success': True, 'suggestions': suggestions})
     else:
         return JsonResponse({'success': False, 'error': suggestions.get('error', 'Lỗi AI')}, status=400)
+
+
+@login_required
+@ratelimit(key='user', rate='60/h', method='POST', block=True)
+@require_POST
+def api_general_chat(request):
+    """API chatbot tổng quát cho website."""
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Dữ liệu không hợp lệ.'}, status=400)
+
+    message = body.get('message', '').strip()
+    if not message:
+        return JsonResponse({'success': False, 'error': 'Vui lòng nhập câu hỏi.'}, status=400)
+
+    if len(message) > 1000:
+        return JsonResponse({'success': False, 'error': 'Câu hỏi quá dài (tối đa 1000 ký tự).'}, status=400)
+
+    chat_history = body.get('history', [])
+
+    success, reply = general_chat(message, chat_history)
+
+    if success:
+        return JsonResponse({'success': True, 'reply': reply})
+    else:
+        return JsonResponse({'success': False, 'error': reply}, status=400)

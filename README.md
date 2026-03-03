@@ -263,7 +263,225 @@ python manage.py test resources
 python manage.py test dashboard
 ```
 
-## 📝 Quy trình nghiệp vụ
+## � Tài liệu API
+
+Hệ thống cung cấp các API endpoint (trả về JSON) phục vụ các tính năng real-time và AI.
+
+### 1. API Xác thực & Tài khoản
+
+| Method | Endpoint | Mô tả | Quyền | Rate Limit |
+|--------|----------|-------|-------|------------|
+| GET/POST | `/accounts/register/` | Đăng ký tài khoản | Public | 10 req/giờ (POST) |
+| GET/POST | `/accounts/login/` | Đăng nhập | Public | 10 req/phút (POST) |
+| GET | `/accounts/logout/` | Đăng xuất | Login | — |
+| GET/POST | `/accounts/profile/` | Xem/cập nhật hồ sơ | Login | — |
+| GET/POST | `/accounts/change-password/` | Đổi mật khẩu | Login | — |
+| GET/POST | `/accounts/forgot-password/` | Quên mật khẩu | Public | 5 req/giờ (POST) |
+| GET/POST | `/accounts/reset-password/<uidb64>/<token>/` | Đặt lại mật khẩu | Public (token) | — |
+| GET | `/accounts/manage-users/` | Quản lý người dùng | Admin | — |
+| POST | `/accounts/update-role/<user_id>/` | Cập nhật vai trò | Admin | — |
+
+### 2. API Tài liệu (Resources)
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/resources/` | Danh sách tài liệu (tìm kiếm, lọc, sắp xếp, phân trang) | Public |
+| GET/POST | `/resources/create/` | Tạo tài liệu mới | User/Admin |
+| GET | `/resources/my/` | Tài liệu của tôi | Login |
+| GET | `/resources/pending/` | Tài liệu chờ duyệt | Admin |
+| GET | `/resources/<slug>/` | Chi tiết tài liệu | Public |
+| GET/POST | `/resources/<slug>/edit/` | Sửa tài liệu | Tác giả/Admin |
+| POST | `/resources/<slug>/delete/` | Xóa tài liệu | Tác giả/Admin |
+| GET | `/resources/<slug>/download/` | Tải file tài liệu | Login |
+| GET | `/resources/<slug>/preview/` | Xem trước file (PDF.js/mammoth) | Public |
+| GET | `/resources/<slug>/file/` | Phục vụ file inline | Public |
+
+**Query Parameters cho `/resources/`:**
+
+| Param | Kiểu | Mô tả | Ví dụ |
+|-------|------|-------|-------|
+| `q` | string | Từ khóa tìm kiếm (tiêu đề, mô tả, nội dung) | `?q=python` |
+| `category` | int | ID danh mục lọc | `?category=3` |
+| `type` | string | Loại tài liệu (`document`, `video`, `image`, `audio`, `other`) | `?type=document` |
+| `sort` | string | Sắp xếp (`-created_at`, `created_at`, `-view_count`, `title`, `-download_count`) | `?sort=-view_count` |
+| `page` | int | Số trang (9 items/trang) | `?page=2` |
+
+### 3. API Bình luận & Đánh giá
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| POST | `/resources/<slug>/comment/` | Thêm bình luận + đánh giá sao (1-5) | User/Admin |
+| POST | `/resources/comment/<pk>/delete/` | Xóa bình luận | Tác giả bình luận/Admin |
+
+### 4. API Phê duyệt tài liệu
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| POST | `/resources/<pk>/approve/` | Phê duyệt tài liệu (pending → approved) | Admin |
+| POST | `/resources/<pk>/reject/` | Từ chối tài liệu (pending → rejected, kèm lý do) | Admin |
+
+### 5. API Danh mục
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/categories/` | Danh sách danh mục (tìm kiếm, phân trang) | Public |
+| GET/POST | `/categories/create/` | Tạo danh mục mới | Admin |
+| GET/POST | `/categories/<pk>/edit/` | Sửa danh mục | Admin |
+| POST | `/categories/<pk>/delete/` | Xóa danh mục (không cho xóa nếu có tài liệu) | Admin |
+
+### 6. API Dashboard & Báo cáo
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/dashboard/` | Trang tổng quan (thống kê, pending, logs, top resources) | Admin |
+| GET | `/dashboard/reports/` | Trang báo cáo (4 biểu đồ Chart.js + thống kê) | Admin |
+
+### 7. API Thông báo Real-time (JSON)
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/api/notifications/` | Lấy danh sách thông báo + số chưa đọc | Login |
+| POST | `/api/notifications/<pk>/read/` | Đánh dấu thông báo đã đọc | Login |
+| POST | `/api/notifications/read-all/` | Đánh dấu tất cả đã đọc | Login |
+
+**Response `/api/notifications/`:**
+```json
+{
+  "unread_count": 3,
+  "notifications": [
+    {
+      "id": 1,
+      "type": "resource_approved",
+      "title": "Tài liệu đã được duyệt",
+      "message": "Tài liệu 'Python cơ bản' đã được phê duyệt.",
+      "link": "/resources/python-co-ban/",
+      "is_read": false,
+      "icon_class": "fas fa-check-circle text-success",
+      "created_at": "28/02/2026 10:30",
+      "time_ago": "5 phút trước"
+    }
+  ]
+}
+```
+
+### 8. API Tìm kiếm Tức thì (JSON)
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/api/search/?q=<keyword>` | Tìm kiếm real-time (debounce 300ms, tối thiểu 2 ký tự) | Public |
+
+**Response `/api/search/?q=python`:**
+```json
+{
+  "results": [
+    {
+      "title": "Python cơ bản",
+      "slug": "python-co-ban",
+      "category": "Tin học",
+      "author": "Nguyễn Văn A",
+      "type": "Tài liệu",
+      "type_raw": "document",
+      "view_count": 150,
+      "rating": 4.5,
+      "thumbnail": "/media/resources/thumbnails/python.jpg",
+      "created_at": "15/01/2026"
+    }
+  ],
+  "total": 5,
+  "query": "python"
+}
+```
+
+### 9. API Online Users & Dashboard Stats (JSON)
+
+| Method | Endpoint | Mô tả | Quyền |
+|--------|----------|-------|-------|
+| GET | `/api/online-users/` | Số người đang online (active trong 5 phút) | Public |
+| GET | `/api/dashboard-stats/` | Thống kê real-time cho dashboard | Admin |
+
+**Response `/api/online-users/`:**
+```json
+{
+  "online_count": 12
+}
+```
+
+**Response `/api/dashboard-stats/`:**
+```json
+{
+  "total_resources": 45,
+  "total_users": 20,
+  "pending_resources": 3,
+  "approved_resources": 38,
+  "rejected_resources": 4,
+  "total_downloads": 1250,
+  "total_views": 8900,
+  "total_comments": 120,
+  "online_count": 12
+}
+```
+
+### 10. API Tính năng AI (JSON)
+
+| Method | Endpoint | Mô tả | Quyền | Rate Limit |
+|--------|----------|-------|-------|------------|
+| POST | `/api/ai/summarize/<slug>/` | Tóm tắt tài liệu bằng AI (Gemini) | Login | 20 req/giờ |
+| POST | `/api/ai/chat/<slug>/` | Chatbot hỏi đáp về tài liệu | Login | 60 req/giờ |
+| POST | `/api/ai/suggest-tags/` | Gợi ý danh mục & tags cho tài liệu | Login | — |
+
+**Request `/api/ai/chat/<slug>/`:**
+```json
+{
+  "message": "Tài liệu này nói về gì?",
+  "history": [
+    {"role": "user", "content": "Xin chào"},
+    {"role": "assistant", "content": "Chào bạn! Tôi có thể giúp gì?"}
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "reply": "Tài liệu này trình bày về các khái niệm cơ bản..."
+}
+```
+
+**Request `/api/ai/suggest-tags/`:**
+```json
+{
+  "title": "Giáo trình Python",
+  "description": "Tài liệu học Python cơ bản",
+  "content": "Nội dung chi tiết...",
+  "resource_id": 5
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "suggestions": {
+    "category": "Tin học",
+    "tags": ["python", "lập trình", "cơ bản"]
+  }
+}
+```
+
+### Mã lỗi HTTP
+
+| Code | Ý nghĩa | Trang lỗi |
+|------|---------|-----------|
+| 200 | Thành công | — |
+| 302 | Chuyển hướng (redirect) | — |
+| 400 | Dữ liệu không hợp lệ | JSON `{"success": false, "error": "..."}` |
+| 403 | Không có quyền truy cập | Trang 403 tùy chỉnh |
+| 404 | Không tìm thấy | Trang 404 tùy chỉnh |
+| 429 | Vượt giới hạn rate limit | Trang 429 tùy chỉnh |
+| 500 | Lỗi server | Trang 500 tùy chỉnh |
+
+## �📝 Quy trình nghiệp vụ
 
 ### Quy trình đăng tải tài liệu
 

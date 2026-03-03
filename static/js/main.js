@@ -150,6 +150,44 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // === Loading States cho Forms (chống double-submit) ===
+  const submitButtons = document.querySelectorAll(".btn-submit, form button[type='submit']");
+  submitButtons.forEach(function (btn) {
+    const form = btn.closest("form");
+    if (!form || form.hasAttribute("data-no-loading")) return;
+
+    form.addEventListener("submit", function (e) {
+      // Không áp dụng cho forms có data-confirm (đã có confirm dialog)
+      if (form.hasAttribute("data-confirm")) return;
+
+      // Tránh double submit
+      if (form.dataset.submitting === "true") {
+        e.preventDefault();
+        return;
+      }
+      form.dataset.submitting = "true";
+
+      // Lưu nội dung gốc và hiển thị loading
+      const originalHTML = btn.innerHTML;
+      const originalWidth = btn.offsetWidth;
+      btn.style.minWidth = originalWidth + "px";
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+      btn.disabled = true;
+      btn.classList.add("btn-loading");
+
+      // Timeout an toàn: khôi phục sau 15 giây nếu form bị kẹt
+      setTimeout(function () {
+        if (form.dataset.submitting === "true") {
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+          btn.classList.remove("btn-loading");
+          btn.style.minWidth = "";
+          form.dataset.submitting = "false";
+        }
+      }, 15000);
+    });
+  });
+
   // === Tooltip Bootstrap ===
   const tooltipTriggerList = document.querySelectorAll("[title]");
   tooltipTriggerList.forEach(function (el) {
@@ -230,5 +268,208 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // === Theme Toggle (Sáng / Tối) ===
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    // Áp dụng theme đã lưu (chạy sớm trong <html> để tránh flash)
+    const savedTheme = localStorage.getItem('eduresource-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    themeToggle.addEventListener('click', function () {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('eduresource-theme', next);
+    });
+  }
+
   console.log("EduResource - Tải hoàn tất ✓");
+
+  // ================================================================
+  //  FLOATING CHATBOT WIDGET
+  // ================================================================
+  const chatbotWidget = document.getElementById('chatbotWidget');
+  if (chatbotWidget) {
+    const toggle = document.getElementById('chatbotToggle');
+    const window_ = document.getElementById('chatbotWindow');
+    const input = document.getElementById('chatbotInput');
+    const sendBtn = document.getElementById('chatbotSend');
+    const messagesEl = document.getElementById('chatbotMessages');
+    const suggestionsEl = document.getElementById('chatbotSuggestions');
+    const clearBtn = document.getElementById('chatbotClear');
+    const minimizeBtn = document.getElementById('chatbotMinimize');
+    const iconOpen = toggle.querySelector('.chatbot-icon-open');
+    const iconClose = toggle.querySelector('.chatbot-icon-close');
+
+    let chatHistory = [];
+    let isSending = false;
+
+    // --- Toggle open / close ---
+    function openChat() {
+      chatbotWidget.classList.add('open');
+      window_.style.display = 'flex';
+      iconOpen.style.display = 'none';
+      iconClose.style.display = 'inline';
+      setTimeout(function () { input.focus(); }, 100);
+    }
+
+    function closeChat() {
+      chatbotWidget.classList.remove('open');
+      window_.style.display = 'none';
+      iconOpen.style.display = 'inline';
+      iconClose.style.display = 'none';
+    }
+
+    toggle.addEventListener('click', function () {
+      if (chatbotWidget.classList.contains('open')) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    });
+
+    minimizeBtn.addEventListener('click', closeChat);
+
+    // --- Send message ---
+    function appendMessage(role, html) {
+      var div = document.createElement('div');
+      div.className = 'chatbot-msg chatbot-msg-' + role;
+      var icon = role === 'bot' ? 'fa-robot' : 'fa-user';
+      div.innerHTML =
+        '<div class="chatbot-msg-avatar"><i class="fas ' + icon + '"></i></div>' +
+        '<div class="chatbot-msg-content">' + html + '</div>';
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      var div = document.createElement('div');
+      div.className = 'chatbot-msg chatbot-msg-bot';
+      div.id = 'chatbotTyping';
+      div.innerHTML =
+        '<div class="chatbot-msg-avatar"><i class="fas fa-robot"></i></div>' +
+        '<div class="chatbot-msg-content"><div class="chatbot-typing"><span></span><span></span><span></span></div></div>';
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      var el = document.getElementById('chatbotTyping');
+      if (el) el.remove();
+    }
+
+    function escapeHtml(text) {
+      var d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+
+    function formatBotResponse(text) {
+      // Simple markdown-like formatting
+      var html = escapeHtml(text);
+      // Bold **text**
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Bullet lists
+      html = html.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+      if (html.includes('<li>')) {
+        html = html.replace(/(<li>.*?<\/li>(\s*)?)+/gs, function (match) {
+          return '<ul class="mb-1 mt-1 ps-3">' + match + '</ul>';
+        });
+      }
+      // Line breaks
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
+
+    async function sendMessage(text) {
+      if (isSending || !text.trim()) return;
+
+      var userText = text.trim();
+      isSending = true;
+      sendBtn.disabled = true;
+      input.value = '';
+
+      // Hide suggestions after first user message
+      suggestionsEl.style.display = 'none';
+
+      // Show user message
+      appendMessage('user', escapeHtml(userText));
+
+      // Add to history
+      chatHistory.push({ role: 'user', content: userText });
+
+      // Show typing
+      showTyping();
+
+      try {
+        var config = window.EDURESOURCE_CONFIG || {};
+        var url = (config.urls && config.urls.aiGeneralChat) || '/api/ai/general-chat/';
+        var csrf = config.csrfToken || '';
+
+        var response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            message: userText,
+            history: chatHistory.slice(-10) // Send last 10 messages for context
+          })
+        });
+
+        removeTyping();
+
+        if (response.ok) {
+          var data = await response.json();
+          var botReply = data.reply || data.response || 'Xin lỗi, tôi không thể trả lời lúc này.';
+          chatHistory.push({ role: 'assistant', content: botReply });
+          appendMessage('bot', formatBotResponse(botReply));
+        } else if (response.status === 429) {
+          appendMessage('bot', '⚠️ Bạn đã gửi quá nhiều tin nhắn. Vui lòng chờ một chút rồi thử lại.');
+        } else {
+          appendMessage('bot', '❌ Đã xảy ra lỗi. Vui lòng thử lại sau.');
+        }
+      } catch (err) {
+        removeTyping();
+        appendMessage('bot', '❌ Không thể kết nối đến server. Vui lòng thử lại.');
+        console.error('Chatbot error:', err);
+      }
+
+      isSending = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+
+    sendBtn.addEventListener('click', function () {
+      sendMessage(input.value);
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(input.value);
+      }
+    });
+
+    // --- Suggestion buttons ---
+    suggestionsEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.chatbot-suggestion-btn');
+      if (btn) {
+        var msg = btn.getAttribute('data-msg');
+        if (msg) sendMessage(msg);
+      }
+    });
+
+    // --- Clear history ---
+    clearBtn.addEventListener('click', function () {
+      chatHistory = [];
+      // Keep only the welcome message (first child)
+      while (messagesEl.children.length > 1) {
+        messagesEl.removeChild(messagesEl.lastChild);
+      }
+      suggestionsEl.style.display = 'flex';
+    });
+  }
 });

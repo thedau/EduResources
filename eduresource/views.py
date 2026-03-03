@@ -1,8 +1,9 @@
 """
-View trang chủ cho dự án EduResource.
+View trang chủ và error handlers cho dự án EduResource.
 """
 
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.db.models import Sum, Count, Q, Avg
 from resources.models import Resource
 from categories.models import Category
@@ -50,3 +51,30 @@ def home(request):
         'stats': stats,
     }
     return render(request, 'home.html', context)
+
+
+# === CUSTOM ERROR HANDLERS ===
+
+def custom_403(request, exception=None):
+    """Trang lỗi 403 - Truy cập bị từ chối."""
+    return render(request, '403.html', status=403)
+
+
+def custom_404(request, exception=None):
+    """Trang lỗi 404 - Không tìm thấy trang."""
+    return render(request, '404.html', status=404)
+
+
+def custom_500(request):
+    """Trang lỗi 500 - Lỗi máy chủ."""
+    return render(request, '500.html', status=500)
+
+
+def ratelimit_error(request, exception=None):
+    """Xử lý khi bị rate limit - trả về 429."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse(
+            {'success': False, 'error': 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.'},
+            status=429
+        )
+    return render(request, '429.html', status=429)

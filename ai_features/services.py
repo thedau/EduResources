@@ -1,5 +1,5 @@
 """
-Dịch vụ AI sử dụng Google Gemini API.
+Dịch vụ AI sử dụng Groq API (LLaMA 3).
 Cung cấp: tóm tắt tài liệu, chatbot trợ giảng, gợi ý danh mục/tag.
 """
 
@@ -9,33 +9,47 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Lazy import để tránh lỗi khi chưa cài đặt
-_genai = None
-_model = None
+# Lazy singleton cho Groq client
+_client = None
+
+GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 
-def _get_model():
-    """Khởi tạo Gemini model (lazy singleton)."""
-    global _genai, _model
-    if _model is None:
+def _get_client():
+    """Khởi tạo Groq client (lazy singleton)."""
+    global _client
+    if _client is None:
         try:
-            import google.generativeai as genai
-            _genai = genai
+            from groq import Groq
 
-            api_key = getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
+            api_key = getattr(settings, 'GROQ_API_KEY', '') or os.getenv('GROQ_API_KEY', '')
             if not api_key:
-                logger.warning("GEMINI_API_KEY chưa được cấu hình.")
+                logger.warning("GROQ_API_KEY chưa được cấu hình.")
                 return None
 
-            genai.configure(api_key=api_key)
-            _model = genai.GenerativeModel('gemini-2.0-flash')
+            _client = Groq(api_key=api_key)
         except ImportError:
-            logger.error("Chưa cài đặt google-generativeai. Chạy: pip install google-generativeai")
+            logger.error("Chưa cài đặt groq. Chạy: pip install groq")
             return None
         except Exception as e:
-            logger.error(f"Lỗi khởi tạo Gemini: {e}")
+            logger.error(f"Lỗi khởi tạo Groq: {e}")
             return None
-    return _model
+    return _client
+
+
+def _chat_completion(messages, max_tokens=2048, temperature=0.7):
+    """Gọi Groq chat completion API."""
+    client = _get_client()
+    if not client:
+        return None
+
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    return response.choices[0].message.content
 
 
 def _extract_file_content(resource):
@@ -85,20 +99,23 @@ def _extract_file_content(resource):
 
 
 def _build_resource_context(resource):
-    """Tạo ngữ cảnh đầy đủ của tài liệu cho AI."""
+    """Tạo ngữ cảnh đầy đủ của tài liệu cho AI. Ưu tiên nội dung file đính kèm."""
     parts = [
         f"Tiêu đề: {resource.title}",
         f"Loại: {resource.get_resource_type_display()}",
         f"Danh mục: {resource.category.name}",
     ]
-    if resource.description:
-        parts.append(f"Mô tả: {resource.description}")
-    if resource.content:
-        parts.append(f"Nội dung chi tiết:\n{resource.content[:5000]}")
 
+    # Ưu tiên nội dung file đính kèm (PDF, DOCX, TXT)
     file_content = _extract_file_content(resource)
     if file_content:
-        parts.append(f"Nội dung file đính kèm:\n{file_content}")
+        parts.append(f"Nội dung tài liệu:\n{file_content}")
+    else:
+        # Chỉ dùng nội dung nhập tay nếu không có file
+        if resource.content:
+            parts.append(f"Nội dung tài liệu:\n{resource.content[:8000]}")
+        elif resource.description:
+            parts.append(f"Mô tả tài liệu: {resource.description}")
 
     return "\n\n".join(parts)
 
@@ -108,9 +125,9 @@ def summarize_resource(resource):
     Tóm tắt nội dung tài liệu bằng AI.
     Returns: (success: bool, summary: str)
     """
-    model = _get_model()
-    if not model:
-        return False, "Chưa cấu hình API key. Vui lòng thêm GEMINI_API_KEY vào file .env"
+    client = _get_client()
+    if not client:
+        return False, "Chưa cấu hình API key. Vui lòng thêm GROQ_API_KEY vào file .env"
 
     context = _build_resource_context(resource)
     if not context or len(context.strip()) < 50:
@@ -132,12 +149,16 @@ Tài liệu cần tóm tắt:
 Trả lời bằng tiếng Việt, định dạng dễ đọc."""
 
     try:
-        response = model.generate_content(prompt)
-        if response and response.text:
-            return True, response.text
+        messages = [
+            {"role": "system", "content": "Bạn là trợ lý giáo dục chuyên tóm tắt tài liệu học tập bằng tiếng Việt."},
+            {"role": "user", "content": prompt},
+        ]
+        result = _chat_completion(messages, max_tokens=2048, temperature=0.5)
+        if result:
+            return True, result
         return False, "AI không thể tạo tóm tắt. Vui lòng thử lại."
     except Exception as e:
-        logger.error(f"Lỗi Gemini summarize: {e}")
+        logger.error(f"Lỗi Groq summarize: {e}")
         return False, f"Lỗi khi gọi AI: {str(e)}"
 
 
@@ -150,9 +171,9 @@ def chat_about_resource(resource, user_message, chat_history=None):
         chat_history: list of dicts [{'role': 'user'/'assistant', 'content': '...'}]
     Returns: (success: bool, reply: str)
     """
-    model = _get_model()
-    if not model:
-        return False, "Chưa cấu hình API key. Vui lòng thêm GEMINI_API_KEY vào file .env"
+    client = _get_client()
+    if not client:
+        return False, "Chưa cấu hình API key. Vui lòng thêm GROQ_API_KEY vào file .env"
 
     context = _build_resource_context(resource)
 
@@ -171,41 +192,25 @@ Quy tắc:
 - Trả lời ngắn gọn nhưng đầy đủ (tối đa 500 từ)
 - Có thể sử dụng markdown để định dạng"""
 
-    # Xây dựng lịch sử chat cho Gemini
-    contents = []
-
-    # System prompt as first user turn
-    contents.append({
-        'role': 'user',
-        'parts': [system_prompt + "\n\nHãy xác nhận bạn đã hiểu vai trò."]
-    })
-    contents.append({
-        'role': 'model',
-        'parts': ["Tôi đã hiểu. Tôi là trợ giảng AI của EduResource, sẵn sàng trả lời câu hỏi về tài liệu này. Bạn có thể hỏi tôi bất cứ điều gì!"]
-    })
+    # Xây dựng messages cho Groq
+    messages = [{"role": "system", "content": system_prompt}]
 
     # Thêm lịch sử chat (giới hạn 10 tin nhắn gần nhất)
     if chat_history:
         for msg in chat_history[-10:]:
-            role = 'user' if msg['role'] == 'user' else 'model'
-            contents.append({
-                'role': role,
-                'parts': [msg['content']]
-            })
+            role = 'user' if msg['role'] == 'user' else 'assistant'
+            messages.append({"role": role, "content": msg['content']})
 
     # Thêm tin nhắn hiện tại
-    contents.append({
-        'role': 'user',
-        'parts': [user_message]
-    })
+    messages.append({"role": "user", "content": user_message})
 
     try:
-        response = model.generate_content(contents)
-        if response and response.text:
-            return True, response.text
+        result = _chat_completion(messages, max_tokens=1024, temperature=0.7)
+        if result:
+            return True, result
         return False, "AI không thể phản hồi. Vui lòng thử lại."
     except Exception as e:
-        logger.error(f"Lỗi Gemini chat: {e}")
+        logger.error(f"Lỗi Groq chat: {e}")
         return False, f"Lỗi khi gọi AI: {str(e)}"
 
 
@@ -214,8 +219,8 @@ def suggest_tags(title, description="", content="", file_content=""):
     Gợi ý danh mục và tag cho tài liệu dựa trên nội dung.
     Returns: (success: bool, suggestions: dict)
     """
-    model = _get_model()
-    if not model:
+    client = _get_client()
+    if not client:
         return False, {"error": "Chưa cấu hình API key."}
 
     # Lấy danh sách danh mục hiện có
@@ -257,11 +262,15 @@ Trả lời theo định dạng JSON (không có markdown code block):
 {{"category": "Tên danh mục", "resource_type": "document", "tags": ["tag1", "tag2", "tag3"], "confidence": 0.85, "reason": "Lý do gợi ý ngắn gọn"}}"""
 
     try:
-        response = model.generate_content(prompt)
-        if response and response.text:
+        messages = [
+            {"role": "system", "content": "Bạn là hệ thống phân loại tài liệu. Luôn trả lời bằng JSON hợp lệ, không có markdown code block."},
+            {"role": "user", "content": prompt},
+        ]
+        result = _chat_completion(messages, max_tokens=512, temperature=0.3)
+        if result:
             import json
             # Làm sạch response
-            text = response.text.strip()
+            text = result.strip()
             # Bỏ markdown code block nếu có
             if text.startswith('```'):
                 text = text.split('\n', 1)[1] if '\n' in text else text[3:]
@@ -272,14 +281,84 @@ Trả lời theo định dạng JSON (không có markdown code block):
                 suggestions = json.loads(text)
                 return True, suggestions
             except json.JSONDecodeError:
-                # Nếu không parse được JSON, trả về text thô
                 return True, {
                     "category": "",
                     "resource_type": "document",
                     "tags": [],
-                    "raw_response": response.text
+                    "raw_response": result
                 }
         return False, {"error": "AI không thể phân tích. Vui lòng thử lại."}
     except Exception as e:
-        logger.error(f"Lỗi Gemini suggest_tags: {e}")
+        logger.error(f"Lỗi Groq suggest_tags: {e}")
         return False, {"error": f"Lỗi khi gọi AI: {str(e)}"}
+
+
+def general_chat(user_message, chat_history=None):
+    """
+    Chatbot tổng quát cho website EduResource.
+    Hỗ trợ người dùng tìm kiếm tài liệu, hướng dẫn sử dụng, trả lời câu hỏi chung.
+    Args:
+        user_message: Câu hỏi của người dùng
+        chat_history: list of dicts [{'role': 'user'/'assistant', 'content': '...'}]
+    Returns: (success: bool, reply: str)
+    """
+    client = _get_client()
+    if not client:
+        return False, "Chưa cấu hình API key. Vui lòng thêm GROQ_API_KEY vào file .env"
+
+    # Lấy thống kê cơ bản để chatbot có context
+    from resources.models import Resource
+    from categories.models import Category
+
+    total_resources = Resource.objects.filter(status='approved').count()
+    categories_list = list(
+        Category.objects.filter(is_active=True).values_list('name', flat=True)
+    )
+    recent_resources = list(
+        Resource.objects.filter(status='approved')
+        .order_by('-created_at')[:5]
+        .values_list('title', flat=True)
+    )
+
+    system_prompt = f"""Bạn là EduBot - trợ lý AI thông minh của nền tảng học tập EduResource.
+
+Thông tin về hệ thống:
+- EduResource là thư viện tài liệu học tập trực tuyến
+- Hiện có {total_resources} tài liệu đã được duyệt
+- Các danh mục: {', '.join(categories_list) if categories_list else 'Chưa có'}
+- Tài liệu mới nhất: {', '.join(recent_resources) if recent_resources else 'Chưa có'}
+
+Chức năng chính của website:
+- Tìm kiếm và xem tài liệu học tập
+- Đăng tải và chia sẻ tài liệu
+- Bình luận và đánh giá tài liệu
+- AI tóm tắt nội dung tài liệu
+- Quản lý danh mục tài liệu
+
+Quy tắc:
+- Luôn trả lời bằng tiếng Việt, thân thiện và nhiệt tình
+- Giúp người dùng tìm tài liệu phù hợp
+- Hướng dẫn cách sử dụng website
+- Trả lời các câu hỏi về học tập và giáo dục
+- Gợi ý tài liệu liên quan khi có thể
+- Trả lời ngắn gọn, dễ hiểu (tối đa 300 từ)
+- Sử dụng emoji phù hợp để thân thiện hơn
+- Nếu không biết, hãy nói thật và gợi ý hướng khác"""
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    if chat_history:
+        for msg in chat_history[-10:]:
+            role = 'user' if msg['role'] == 'user' else 'assistant'
+            messages.append({"role": role, "content": msg['content']})
+
+    messages.append({"role": "user", "content": user_message})
+
+    try:
+        result = _chat_completion(messages, max_tokens=1024, temperature=0.7)
+        if result:
+            return True, result
+        return False, "Xin lỗi, mình không thể trả lời lúc này. Vui lòng thử lại!"
+    except Exception as e:
+        logger.error(f"Lỗi Groq general_chat: {e}")
+        return False, f"Lỗi khi gọi AI: {str(e)}"

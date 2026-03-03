@@ -21,6 +21,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 # Cho phép ngrok và các tunnel khác gửi request CSRF
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
 CSRF_TRUSTED_ORIGINS = [o for o in CSRF_TRUSTED_ORIGINS if o]  # lọc rỗng
+CSRF_TRUSTED_ORIGINS += ['https://*.ngrok-free.app', 'https://*.ngrok.io']
 
 # === ỨNG DỤNG ===
 INSTALLED_APPS = [
@@ -39,8 +40,8 @@ INSTALLED_APPS = [
     'ai_features',
 ]
 
-# === GEMINI AI ===
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+# === GROQ AI ===
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -174,6 +175,9 @@ if DB_ENGINE == 'django.db.backends.mysql':
 
 # === SESSION ===
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+
+# === RATE LIMITING ===
+RATELIMIT_VIEW = 'eduresource.views.ratelimit_error'
 
 # === BẢO MẬT PRODUCTION ===
 if not DEBUG:

@@ -30,13 +30,20 @@
       rel="stylesheet"
     />
     <!-- Custom CSS -->
-    <link href="{% static 'css/style.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/style.css' %}?v=2" rel="stylesheet" />
+    <!-- Áp dụng theme trước khi render để tránh flash trắng -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('eduresource-theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      })();
+    </script>
     {% block extra_css %}{% endblock %}
   </head>
   <body class="d-flex flex-column min-vh-100">
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top" id="mainNav">
-      <div class="container">
+      <div class="container-fluid px-3 px-lg-4">
         <a class="navbar-brand fw-bold" href="{% url 'home' %}">
           <i class="fas fa-graduation-cap me-2"></i>EduResource
         </a>
@@ -69,16 +76,16 @@
             </li>
           </ul>
 
-          <!-- Live Search -->
+          <!-- Live Search (Desktop) -->
           <div class="nav-search-wrapper me-3 d-none d-lg-block position-relative">
             <div class="input-group input-group-sm">
               <input
                 type="text"
                 id="liveSearchInput"
-                class="form-control"
+                class="form-control live-search-input"
                 placeholder="Tìm kiếm tài liệu..."
                 autocomplete="off"
-                style="min-width: 260px; border-radius: 20px 0 0 20px; border: none; background: rgba(255,255,255,0.15); color: #fff;"
+                style="min-width: 200px; border-radius: 20px 0 0 20px; border: none; background: rgba(255,255,255,0.15); color: #fff;"
               />
               <button class="btn btn-outline-light btn-sm" type="button" style="border-radius: 0 20px 20px 0; border: none; background: rgba(255,255,255,0.1);">
                 <i class="fas fa-search"></i>
@@ -86,6 +93,17 @@
             </div>
             <div id="liveSearchResults" class="live-search-dropdown" style="display: none;"></div>
           </div>
+
+          <!-- Mobile Search Toggle -->
+          <button class="btn btn-outline-light btn-sm d-lg-none me-2" type="button" id="mobileSearchToggle" aria-label="Tìm kiếm">
+            <i class="fas fa-search"></i>
+          </button>
+
+          <!-- Theme Toggle -->
+          <button class="theme-toggle me-1" type="button" id="themeToggle" aria-label="Chuyển đổi giao diện sáng/tối" title="Sáng / Tối">
+            <i class="fas fa-moon"></i>
+            <i class="fas fa-sun"></i>
+          </button>
 
           <!-- Menu phải -->
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -219,6 +237,11 @@
                   </a>
                 </li>
                 <li>
+                  <a class="dropdown-item" href="{% url 'accounts:change_password' %}">
+                    <i class="fas fa-key me-2"></i>Đổi mật khẩu
+                  </a>
+                </li>
+                <li>
                   <a
                     class="dropdown-item"
                     href="{% url 'resources:my_resources' %}"
@@ -256,6 +279,28 @@
         </div>
       </div>
     </nav>
+
+    <!-- Mobile Search Bar (ẩn mặc định, hiện khi bấm nút search trên mobile) -->
+    <div id="mobileSearchBar" class="d-lg-none" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+      <div class="container py-2">
+        <div class="position-relative">
+          <div class="input-group">
+            <input
+              type="text"
+              id="mobileSearchInput"
+              class="form-control live-search-input"
+              placeholder="Tìm kiếm tài liệu..."
+              autocomplete="off"
+              style="border-radius: 20px 0 0 20px;"
+            />
+            <button class="btn btn-light" type="button" id="mobileSearchClose" style="border-radius: 0 20px 20px 0;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div id="mobileSearchResults" class="live-search-dropdown" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== THÔNG BÁO ===== -->
     {% if messages %}
@@ -375,7 +420,7 @@
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
     <!-- Custom JS -->
-    <script src="{% static 'js/main.js' %}" defer></script>
+    <script src="{% static 'js/main.js' %}?v=2" defer></script>
     <!-- Real-time Features Config -->
     <script>
       window.EDURESOURCE_CONFIG = {
@@ -389,11 +434,79 @@
           dashboardStats: '{% url "notifications:api_dashboard_stats" %}',
           resourceDetail: '{% url "resources:list" %}',
           aiSuggestTags: '{% url "ai_features:api_suggest_tags" %}',
+          aiGeneralChat: '{% url "ai_features:api_general_chat" %}',
         },
         csrfToken: '{{ csrf_token }}',
       };
     </script>
     <script src="{% static 'js/realtime.js' %}" defer></script>
+
+    {% if user.is_authenticated %}
+    <!-- ===== FLOATING CHATBOT ===== -->
+    <div id="chatbotWidget" class="chatbot-widget">
+      <!-- Toggle Button -->
+      <button id="chatbotToggle" class="chatbot-toggle-btn" title="Chat với EduBot">
+        <i class="fas fa-robot chatbot-icon-open"></i>
+        <i class="fas fa-times chatbot-icon-close" style="display:none;"></i>
+        <span class="chatbot-pulse"></span>
+      </button>
+
+      <!-- Chat Window -->
+      <div id="chatbotWindow" class="chatbot-window" style="display:none;">
+        <div class="chatbot-header">
+          <div class="d-flex align-items-center gap-2">
+            <div class="chatbot-avatar">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div>
+              <h6 class="mb-0 text-white fw-bold">EduBot</h6>
+              <small class="text-white-50">Trợ lý AI</small>
+            </div>
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm text-white-50" id="chatbotClear" title="Xóa hội thoại">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="btn btn-sm text-white-50" id="chatbotMinimize" title="Thu nhỏ">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="chatbot-messages" id="chatbotMessages">
+          <div class="chatbot-msg chatbot-msg-bot">
+            <div class="chatbot-msg-avatar"><i class="fas fa-robot"></i></div>
+            <div class="chatbot-msg-content">
+              Xin chào <strong>{{ user.full_name|default:user.username }}</strong>! 👋<br>
+              Mình là <strong>EduBot</strong>, trợ lý AI của EduResource.<br>
+              Bạn có thể hỏi mình về:
+              <ul class="mb-0 mt-1 ps-3">
+                <li>Tìm tài liệu học tập</li>
+                <li>Hướng dẫn sử dụng website</li>
+                <li>Câu hỏi về học tập</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="chatbot-suggestions" id="chatbotSuggestions">
+          <button class="chatbot-suggestion-btn" data-msg="Có tài liệu gì mới?">📚 Tài liệu mới</button>
+          <button class="chatbot-suggestion-btn" data-msg="Hướng dẫn đăng tài liệu">📤 Cách đăng tài liệu</button>
+          <button class="chatbot-suggestion-btn" data-msg="Có những danh mục nào?">📂 Danh mục</button>
+        </div>
+
+        <div class="chatbot-input-area">
+          <div class="input-group">
+            <input type="text" id="chatbotInput" class="form-control" placeholder="Nhập tin nhắn..." autocomplete="off" maxlength="1000" />
+            <button class="btn btn-primary" id="chatbotSend" type="button">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
   </body>
 </html>

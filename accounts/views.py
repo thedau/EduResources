@@ -4,7 +4,7 @@ Xử lý: Đăng ký, Đăng nhập, Đăng xuất, Hồ sơ, Quên mật khẩu
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
@@ -12,11 +12,13 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django_ratelimit.decorators import ratelimit
 from .models import User
-from .forms import RegisterForm, LoginForm, ProfileForm, UserRoleForm, ForgotPasswordForm, ResetPasswordForm
+from .forms import RegisterForm, LoginForm, ProfileForm, UserRoleForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm
 from .decorators import admin_required
 
 
+@ratelimit(key='ip', rate='10/h', method='POST', block=True)
 def register(request):
     """Xử lý đăng ký tài khoản mới."""
     if request.user.is_authenticated:
@@ -40,6 +42,7 @@ def register(request):
     return render(request, 'accounts/register.html', {'form': form})
 
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def login_view(request):
     """Xử lý đăng nhập."""
     if request.user.is_authenticated:
@@ -101,6 +104,7 @@ def profile(request):
     })
 
 
+@ratelimit(key='ip', rate='5/h', method='POST', block=True)
 def forgot_password(request):
     """Xử lý quên mật khẩu - tạo link đặt lại mật khẩu."""
     if request.user.is_authenticated:
@@ -125,7 +129,11 @@ def forgot_password(request):
                     'Link đặt lại mật khẩu đã được tạo. Vui lòng sử dụng link bên dưới.'
                 )
             except User.DoesNotExist:
-                messages.error(request, 'Không tìm thấy tài khoản với email này.')
+                # Trả về cùng thông báo để tránh lộ thông tin tài khoản (email enumeration)
+                messages.success(
+                    request,
+                    'Nếu email tồn tại trong hệ thống, link đặt lại mật khẩu sẽ được hiển thị.'
+                )
     else:
         form = ForgotPasswordForm()
 
@@ -206,3 +214,23 @@ def update_user_role(request, user_id):
             messages.error(request, 'Không thể cập nhật vai trò.')
 
     return redirect('accounts:manage_users')
+
+
+@login_required
+def change_password(request):
+    """Thay đổi mật khẩu khi đã đăng nhập."""
+    if request.method == 'POST':
+        form = ChangePasswordForm(request.user, request.POST)
+        if form.is_valid():
+            request.user.set_password(form.cleaned_data['new_password'])
+            request.user.save()
+            # Cập nhật session để không bị đăng xuất
+            update_session_auth_hash(request, request.user)
+            messages.success(request, 'Mật khẩu đã được thay đổi thành công.')
+            return redirect('accounts:profile')
+        else:
+            messages.error(request, 'Vui lòng kiểm tra lại thông tin.')
+    else:
+        form = ChangePasswordForm(request.user)
+
+    return render(request, 'accounts/change_password.html', {'form': form})

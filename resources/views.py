@@ -374,8 +374,9 @@ def reject_resource(request, pk):
     return redirect('resources:pending')
 
 
+@login_required
 def download_resource(request, slug):
-    """Tải xuống tệp đính kèm của tài liệu."""
+    """Tải xuống tệp đính kèm của tài liệu - yêu cầu đăng nhập."""
     resource = get_object_or_404(Resource, slug=slug, status='approved')
 
     if not resource.file:

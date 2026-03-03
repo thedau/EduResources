@@ -177,3 +177,50 @@ class ResetPasswordForm(forms.Form):
         if password and password_confirm and password != password_confirm:
             raise forms.ValidationError('Mật khẩu không khớp.')
         return cleaned_data
+
+
+class ChangePasswordForm(forms.Form):
+    """Form thay đổi mật khẩu khi đã đăng nhập."""
+
+    current_password = forms.CharField(
+        label='Mật khẩu hiện tại',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nhập mật khẩu hiện tại'
+        })
+    )
+    new_password = forms.CharField(
+        label='Mật khẩu mới',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nhập mật khẩu mới (ít nhất 6 ký tự)'
+        }),
+        min_length=6
+    )
+    new_password_confirm = forms.CharField(
+        label='Xác nhận mật khẩu mới',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nhập lại mật khẩu mới'
+        })
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        """Kiểm tra mật khẩu hiện tại có đúng không."""
+        current_password = self.cleaned_data.get('current_password')
+        if not self.user.check_password(current_password):
+            raise forms.ValidationError('Mật khẩu hiện tại không đúng.')
+        return current_password
+
+    def clean(self):
+        """Kiểm tra hai mật khẩu mới có khớp nhau không."""
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        new_password_confirm = cleaned_data.get('new_password_confirm')
+        if new_password and new_password_confirm and new_password != new_password_confirm:
+            raise forms.ValidationError('Mật khẩu mới không khớp.')
+        return cleaned_data
