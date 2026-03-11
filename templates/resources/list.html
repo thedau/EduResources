@@ -21,7 +21,7 @@
     <!-- Bộ lọc & Tìm kiếm -->
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end filter-form">
+            <form method="get" class="row g-2 g-md-3 align-items-end filter-form">
                 <div class="col-6 col-md-4">
                     <label class="form-label fw-medium">Tìm kiếm</label>
                     <input type="text" name="q" value="{{ search_query }}" class="form-control"
@@ -71,7 +71,7 @@
     </div>
 
     <!-- Danh sách tài liệu -->
-    <div class="row g-4 reveal reveal-stagger">
+    <div class="row g-3 g-md-4 reveal reveal-stagger">
         {% for resource in page_obj %}
         <div class="col-6 col-md-6 col-lg-4">
             <div class="card resource-card h-100 shadow-sm">
@@ -85,23 +85,23 @@
                 <div class="card-body d-flex flex-column">
                     <div class="mb-2">
                         <span class="badge bg-primary-subtle text-primary">{{ resource.category.name }}</span>
-                        <span class="badge bg-secondary-subtle text-secondary">{{ resource.get_resource_type_display }}</span>
+                        <span class="badge bg-secondary-subtle text-secondary d-none d-md-inline">{{ resource.get_resource_type_display }}</span>
                     </div>
                     <h5 class="card-title fw-bold">
                         <a href="{% url 'resources:detail' resource.slug %}" class="text-decoration-none text-dark stretched-link">
                             {{ resource.title|truncatechars:60 }}
                         </a>
                     </h5>
-                    <p class="card-text text-muted small flex-grow-1">
+                    <p class="card-text text-muted small flex-grow-1 d-none d-md-block">
                         {{ resource.description|truncatechars:100 }}
                     </p>
                     <div class="mt-auto pt-3 border-top">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <small class="text-muted">
-                                <i class="fas fa-user me-1"></i>{{ resource.author.full_name|default:resource.author.username }}
+                                <i class="fas fa-user me-1"></i><span class="d-none d-sm-inline">{{ resource.author.full_name|default:resource.author.username }}</span><span class="d-sm-none">{{ resource.author.username }}</span>
                             </small>
-                            <small class="text-muted">
-                                <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y H:i" }}
+                            <small class="text-muted d-none d-sm-inline">
+                                <i class="fas fa-calendar-alt me-1"></i>{{ resource.created_at|date:"d/m/Y" }}
                             </small>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
@@ -110,8 +110,8 @@
                                 <span title="Lượt tải"><i class="fas fa-download me-1"></i>{{ resource.download_count }}</span>
                             </div>
                             {% if resource.avg_rating %}
-                            <small class="text-warning">
-                                <i class="fas fa-star me-1"></i>{{ resource.avg_rating|rating_display }}/5 ({{ resource.num_comments }} đánh giá)
+                            <small class="text-warning d-none d-sm-inline">
+                                <i class="fas fa-star me-1"></i>{{ resource.avg_rating|rating_display }}/5
                             </small>
                             {% endif %}
                         </div>

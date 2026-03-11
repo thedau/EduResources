@@ -191,8 +191,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // === Tooltip Bootstrap ===
   const tooltipTriggerList = document.querySelectorAll("[title]");
   tooltipTriggerList.forEach(function (el) {
-    if (el.closest(".modal") === null) {
-      // Không áp dụng tooltip trong modal
+    // Không áp dụng tooltip trong modal hoặc chatbot (gây chặn click trên mobile)
+    if (el.closest(".modal") === null && el.closest(".chatbot-widget") === null) {
       new bootstrap.Tooltip(el, { trigger: "hover" });
     }
   });
@@ -284,6 +284,61 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   console.log("EduResource - Tải hoàn tất ✓");
+
+  // ================================================================
+  //  MOBILE ENHANCEMENTS
+  // ================================================================
+
+  // === Close navbar on link click (mobile) ===
+  var navbarCollapse = document.getElementById('navbarContent');
+  if (navbarCollapse) {
+    var mobileNavLinks = navbarCollapse.querySelectorAll('.nav-link:not(.dropdown-toggle)');
+    mobileNavLinks.forEach(function(link) {
+      link.addEventListener('click', function() {
+        if (window.innerWidth < 992) {
+          var bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+          if (bsCollapse) bsCollapse.hide();
+        }
+      });
+    });
+  }
+
+  // === Table responsive scroll indicator ===
+  var tableResponsives = document.querySelectorAll('.table-responsive');
+  tableResponsives.forEach(function(el) {
+    el.addEventListener('scroll', function() {
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 5) {
+        el.classList.add('scrolled-end');
+      } else {
+        el.classList.remove('scrolled-end');
+      }
+    });
+  });
+
+  // === Hide bottom nav on scroll down, show on scroll up ===
+  var mobileBottomNav = document.getElementById('mobileBottomNav');
+  if (mobileBottomNav) {
+    var lastScrollY = window.scrollY;
+    var ticking = false;
+
+    window.addEventListener('scroll', function() {
+      if (!ticking) {
+        window.requestAnimationFrame(function() {
+          var currentScrollY = window.scrollY;
+          if (currentScrollY > lastScrollY && currentScrollY > 100) {
+            mobileBottomNav.style.transform = 'translateY(100%)';
+            mobileBottomNav.style.transition = 'transform 0.3s ease';
+          } else {
+            mobileBottomNav.style.transform = 'translateY(0)';
+            mobileBottomNav.style.transition = 'transform 0.3s ease';
+          }
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
 
   // ================================================================
   //  FLOATING CHATBOT WIDGET

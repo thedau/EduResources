@@ -222,46 +222,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Khởi tạo live search cho cả navbar và hero section
   initLiveSearch("liveSearchInput", "liveSearchResults");
   initLiveSearch("heroSearchInput", "heroSearchResults");
-  initLiveSearch("mobileSearchInput", "mobileSearchResults");
-
-  // === Mobile Search Toggle ===
-  var mobileSearchToggle = document.getElementById("mobileSearchToggle");
-  var mobileSearchBar = document.getElementById("mobileSearchBar");
-  var mobileSearchClose = document.getElementById("mobileSearchClose");
-  var mobileSearchInputEl = document.getElementById("mobileSearchInput");
-
-  if (mobileSearchToggle && mobileSearchBar) {
-    mobileSearchToggle.addEventListener("click", function () {
-      if (mobileSearchBar.style.display === "none") {
-        mobileSearchBar.style.display = "block";
-        if (mobileSearchInputEl) mobileSearchInputEl.focus();
-      } else {
-        mobileSearchBar.style.display = "none";
-      }
-    });
-  }
-
-  if (mobileSearchClose && mobileSearchBar) {
-    mobileSearchClose.addEventListener("click", function () {
-      mobileSearchBar.style.display = "none";
-      if (mobileSearchInputEl) mobileSearchInputEl.value = "";
-      var mobileResults = document.getElementById("mobileSearchResults");
-      if (mobileResults) mobileResults.style.display = "none";
-    });
-  }
-
-  // Enter trên mobile search
-  if (mobileSearchInputEl) {
-    mobileSearchInputEl.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        var query = mobileSearchInputEl.value.trim();
-        if (query.length >= 2) {
-          window.location.href = CONFIG.urls.resourceDetail + "?q=" + encodeURIComponent(query);
-        }
-      }
-    });
-  }
 
   // ============================================================
   // 5. ONLINE USERS (polling mỗi 30 giây)

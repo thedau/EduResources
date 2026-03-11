@@ -3,7 +3,7 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>
       {% block title %}EduResource{% endblock %} | Thư viện Tài liệu Học tập
     </title>
@@ -30,7 +30,7 @@
       rel="stylesheet"
     />
     <!-- Custom CSS -->
-    <link href="{% static 'css/style.css' %}?v=2" rel="stylesheet" />
+    <link href="{% static 'css/style.css' %}?v=5" rel="stylesheet" />
     <!-- Áp dụng theme trước khi render để tránh flash trắng -->
     <script>
       (function() {
@@ -76,28 +76,25 @@
             </li>
           </ul>
 
-          <!-- Live Search (Desktop) -->
-          <div class="nav-search-wrapper me-3 d-none d-lg-block position-relative">
+          <!-- Search Bar (responsive - adapts to desktop/mobile) -->
+          <div class="nav-search-wrapper me-lg-3 w-100 w-lg-auto my-2 my-lg-0 position-relative" id="navSearchWrapper">
             <div class="input-group input-group-sm">
+              <span class="input-group-text d-lg-none bg-white border-end-0" style="border-radius: 20px 0 0 20px;">
+                <i class="fas fa-search text-muted"></i>
+              </span>
               <input
                 type="text"
                 id="liveSearchInput"
                 class="form-control live-search-input"
                 placeholder="Tìm kiếm tài liệu..."
                 autocomplete="off"
-                style="min-width: 200px; border-radius: 20px 0 0 20px; border: none; background: rgba(255,255,255,0.15); color: #fff;"
               />
-              <button class="btn btn-outline-light btn-sm" type="button" style="border-radius: 0 20px 20px 0; border: none; background: rgba(255,255,255,0.1);">
+              <button class="btn btn-outline-light btn-sm d-none d-lg-flex" type="button" style="border-radius: 0 20px 20px 0; border: none; background: rgba(255,255,255,0.1);">
                 <i class="fas fa-search"></i>
               </button>
             </div>
             <div id="liveSearchResults" class="live-search-dropdown" style="display: none;"></div>
           </div>
-
-          <!-- Mobile Search Toggle -->
-          <button class="btn btn-outline-light btn-sm d-lg-none me-2" type="button" id="mobileSearchToggle" aria-label="Tìm kiếm">
-            <i class="fas fa-search"></i>
-          </button>
 
           <!-- Theme Toggle -->
           <button class="theme-toggle me-1" type="button" id="themeToggle" aria-label="Chuyển đổi giao diện sáng/tối" title="Sáng / Tối">
@@ -169,7 +166,7 @@
             </li>
 
             <!-- Notification Bell -->
-            <li class="nav-item dropdown">
+            <li class="nav-item dropdown" id="notificationDropdownWrapper">
               <a
                 class="nav-link position-relative"
                 href="#"
@@ -184,7 +181,7 @@
                   style="display: none; position: absolute; top: 2px; right: -2px; font-size: 0.65rem;"
                 ></span>
               </a>
-              <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 360px; max-height: 450px; overflow-y: auto; padding: 0;">
+              <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="max-height: 450px; overflow-y: auto; padding: 0;">
                 <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
                   <h6 class="mb-0 fw-bold"><i class="fas fa-bell me-1"></i>Thông báo</h6>
                   <button class="btn btn-link btn-sm text-decoration-none p-0" id="markAllReadBtn" style="font-size: 0.8rem;">
@@ -279,28 +276,6 @@
         </div>
       </div>
     </nav>
-
-    <!-- Mobile Search Bar (ẩn mặc định, hiện khi bấm nút search trên mobile) -->
-    <div id="mobileSearchBar" class="d-lg-none" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-      <div class="container py-2">
-        <div class="position-relative">
-          <div class="input-group">
-            <input
-              type="text"
-              id="mobileSearchInput"
-              class="form-control live-search-input"
-              placeholder="Tìm kiếm tài liệu..."
-              autocomplete="off"
-              style="border-radius: 20px 0 0 20px;"
-            />
-            <button class="btn btn-light" type="button" id="mobileSearchClose" style="border-radius: 0 20px 20px 0;">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div id="mobileSearchResults" class="live-search-dropdown" style="display: none;"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- ===== THÔNG BÁO ===== -->
     {% if messages %}
@@ -416,11 +391,46 @@
       </div>
     </footer>
 
+    <!-- ===== MOBILE BOTTOM NAVIGATION ===== -->
+    <nav class="mobile-bottom-nav d-lg-none" id="mobileBottomNav">
+      <div class="mobile-bottom-nav-inner">
+        <a href="{% url 'home' %}" class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
+          <i class="fas fa-home"></i>
+          <span>Trang chủ</span>
+        </a>
+        <a href="{% url 'resources:list' %}" class="mobile-nav-item {% if '/resources' in request.path and '/my-resources' not in request.path %}active{% endif %}">
+          <i class="fas fa-book"></i>
+          <span>Tài liệu</span>
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'resources:create' %}" class="mobile-nav-item">
+          <i class="fas fa-plus-circle"></i>
+          <span>Đăng mới</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'categories:list' %}" class="mobile-nav-item {% if '/categories' in request.path %}active{% endif %}">
+          <i class="fas fa-th-large"></i>
+          <span>Danh mục</span>
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile' %}" class="mobile-nav-item {% if '/accounts/profile' in request.path %}active{% endif %}">
+          <i class="fas fa-user"></i>
+          <span>Tài khoản</span>
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:login' %}" class="mobile-nav-item {% if '/accounts/login' in request.path %}active{% endif %}">
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Đăng nhập</span>
+        </a>
+        {% endif %}
+      </div>
+    </nav>
+
     <!-- ===== SCRIPTS ===== -->
     <!-- Bootstrap 5.3 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
     <!-- Custom JS -->
-    <script src="{% static 'js/main.js' %}?v=2" defer></script>
+    <script src="{% static 'js/main.js' %}?v=5" defer></script>
     <!-- Real-time Features Config -->
     <script>
       window.EDURESOURCE_CONFIG = {
