@@ -12,6 +12,19 @@
           Nền tảng chia sẻ tài liệu giáo dục hàng đầu. Tìm kiếm, chia sẻ và kết
           nối với cộng đồng học tập trực tuyến.
         </p>
+
+        <div class="hero-quick-badges d-flex flex-wrap gap-2 mb-4">
+          <span class="badge hero-quick-badge">
+            <i class="fas fa-book me-1"></i>{{ stats.total_resources }}+ tài liệu
+          </span>
+          <span class="badge hero-quick-badge">
+            <i class="fas fa-users me-1"></i>{{ stats.total_users }}+ thành viên
+          </span>
+          <span class="badge hero-quick-badge">
+            <i class="fas fa-download me-1"></i>{{ stats.total_downloads }}+ lượt tải
+          </span>
+        </div>
+
         <!-- Thanh tìm kiếm -->
         <form
           action="{% url 'resources:list' %}"
@@ -43,8 +56,59 @@
   </div>
 </section>
 
+<section class="hero-divider-section">
+  <div class="container">
+    <div class="hero-divider-line"></div>
+  </div>
+</section>
+
+<!-- ===== ĐIỂM NHẤN NỀN TẢNG ===== -->
+<section class="py-5 home-feature-section home-section">
+  <div class="container">
+    <div class="text-center mb-4 mb-md-5 reveal">
+      <h2 class="fw-bold">Điểm nổi bật của EduResource</h2>
+      <p class="text-muted mb-0">Nhiều tiện ích hơn để trải nghiệm học tập trực tuyến hiệu quả</p>
+    </div>
+    <div class="row g-3 g-md-4 reveal reveal-stagger">
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 home-feature-card home-feature-card-1">
+          <div class="card-body p-4">
+            <div class="home-feature-icon mb-3">
+              <i class="fas fa-bolt"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Tìm kiếm nhanh</h5>
+            <p class="text-muted mb-0">Tìm tài liệu theo từ khóa, danh mục và mức độ phổ biến chỉ trong vài giây.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 home-feature-card home-feature-card-2">
+          <div class="card-body p-4">
+            <div class="home-feature-icon mb-3">
+              <i class="fas fa-shield-check"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Kiểm duyệt rõ ràng</h5>
+            <p class="text-muted mb-0">Nội dung được duyệt theo quy trình giúp thư viện tài liệu luôn chất lượng.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 home-feature-card home-feature-card-3">
+          <div class="card-body p-4">
+            <div class="home-feature-icon mb-3">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Theo dõi xu hướng</h5>
+            <p class="text-muted mb-0">Nắm bắt nội dung được quan tâm để chọn tài liệu phù hợp với nhu cầu học tập.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ===== THỐNG KÊ ===== -->
-<section class="py-5 bg-white">
+<section class="py-5 bg-white home-section">
   <div class="container">
     <div class="row g-4 text-center reveal reveal-stagger">
       <div class="col-6 col-md-3">
@@ -95,12 +159,39 @@
         </div>
       </div>
     </div>
+
+    <div class="row g-3 g-md-4 mt-2 mt-md-3">
+      <div class="col-12 col-lg-5">
+        <div class="card border-0 shadow-sm home-chart-card reveal">
+          <div class="card-header bg-transparent">
+            <h5 class="fw-bold mb-0">
+              <i class="fas fa-chart-column text-primary me-2"></i>Tổng quan nhanh từ số liệu hệ thống
+            </h5>
+          </div>
+          <div class="card-body">
+            <canvas id="homeOverviewChart" height="110"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm home-chart-card reveal">
+          <div class="card-header bg-transparent">
+            <h5 class="fw-bold mb-0">
+              <i class="fas fa-chart-line text-success me-2"></i>Tài liệu đã duyệt theo tháng (6 tháng gần nhất)
+            </h5>
+          </div>
+          <div class="card-body">
+            <canvas id="homeMonthlyChart" height="110"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- ===== DANH MỤC NỔI BẬT ===== -->
 {% if categories %}
-<section class="py-5 bg-light">
+<section class="py-5 bg-light decorated-section home-section">
   <div class="container">
     <div class="text-center mb-5 reveal">
       <h2 class="fw-bold">Danh mục phổ biến</h2>
@@ -137,7 +228,7 @@
 
 <!-- ===== TÀI LIỆU MỚI NHẤT ===== -->
 {% if recent_resources %}
-<section class="py-5">
+<section class="py-5 home-section">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 reveal">
       <div>
@@ -151,7 +242,7 @@
     <div class="row g-3 g-md-4 reveal reveal-stagger">
       {% for resource in recent_resources %}
       <div class="col-6 col-md-6 col-lg-4">
-        <div class="card resource-card h-100 shadow-sm">
+        <div class="card resource-card h-100 shadow-sm home-resource-card">
           {% if resource.thumbnail %}
           <img
             src="{{ resource.thumbnail.url }}"
@@ -173,7 +264,7 @@
                 >{{ resource.get_resource_type_display }}</span
               >
             </div>
-            <h5 class="card-title fw-bold">
+            <h5 class="card-title fw-bold home-resource-title">
               <a
                 href="{% url 'resources:detail' resource.slug %}"
                 class="text-decoration-none text-dark stretched-link"
@@ -181,10 +272,10 @@
                 {{ resource.title|truncatechars:60 }}
               </a>
             </h5>
-            <p class="card-text text-muted small flex-grow-1 d-none d-md-block">
+            <p class="card-text text-muted small flex-grow-1 d-none d-md-block home-resource-desc">
               {{ resource.description|truncatechars:100 }}
             </p>
-                        <div class="mt-auto pt-3 border-top">
+                        <div class="mt-auto pt-3 border-top home-resource-meta">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">
                         <i class="fas fa-user me-1"></i><span class="d-none d-sm-inline">{{ resource.author.full_name|default:resource.author.username }}</span><span class="d-sm-none">{{ resource.author.username }}</span>
@@ -216,7 +307,7 @@
 
 <!-- ===== TÀI LIỆU PHỔ BIẾN ===== -->
 {% if popular_resources %}
-<section class="py-5 bg-light">
+<section class="py-5 bg-light decorated-section home-section">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 reveal">
       <div>
@@ -233,7 +324,7 @@
     <div class="row g-3 g-md-4 reveal reveal-stagger">
       {% for resource in popular_resources %}
       <div class="col-6 col-md-6 col-lg-4">
-        <div class="card resource-card h-100 shadow-sm">
+        <div class="card resource-card h-100 shadow-sm home-resource-card">
           {% if resource.thumbnail %}
           <img
             src="{{ resource.thumbnail.url }}"
@@ -252,7 +343,7 @@
                 >{{ resource.category.name }}</span
               >
             </div>
-            <h5 class="card-title fw-bold">
+            <h5 class="card-title fw-bold home-resource-title">
               <a
                 href="{% url 'resources:detail' resource.slug %}"
                 class="text-decoration-none text-dark stretched-link"
@@ -260,10 +351,10 @@
                 {{ resource.title|truncatechars:60 }}
               </a>
             </h5>
-            <p class="card-text text-muted small flex-grow-1 d-none d-md-block">
+            <p class="card-text text-muted small flex-grow-1 d-none d-md-block home-resource-desc">
               {{ resource.description|truncatechars:100 }}
             </p>
-                        <div class="mt-auto pt-3 border-top">
+                        <div class="mt-auto pt-3 border-top home-resource-meta">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">
                         <i class="fas fa-user me-1"></i><span class="d-none d-sm-inline">{{ resource.author.full_name|default:resource.author.username }}</span><span class="d-sm-none">{{ resource.author.username }}</span>
@@ -294,7 +385,7 @@
 {% endif %}
 
 <!-- ===== CTA SECTION ===== -->
-<section class="cta-section py-5">
+<section class="cta-section py-5 home-section">
   <div class="container text-center reveal-scale reveal">
     <h2 class="fw-bold text-white mb-3">Bạn có tài liệu hay muốn chia sẻ?</h2>
     <p class="text-white-50 mb-4">
@@ -311,4 +402,83 @@
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartEl = document.getElementById("homeOverviewChart");
+    const chartMonthlyEl = document.getElementById("homeMonthlyChart");
+    const chartOverview = {
+      labels: ["Tài liệu", "Thành viên", "Danh mục", "Lượt tải"],
+      data: [
+        Number("{{ stats.total_resources|default:0 }}"),
+        Number("{{ stats.total_users|default:0 }}"),
+        Number("{{ stats.total_categories|default:0 }}"),
+        Number("{{ stats.total_downloads|default:0 }}"),
+      ],
+    };
+    const chartMonthly = JSON.parse("{{ chart_monthly|escapejs }}");
+
+    if (chartEl) {
+      new Chart(chartEl, {
+        type: "bar",
+        data: {
+          labels: chartOverview.labels,
+          datasets: [
+            {
+              label: "Giá trị",
+              data: chartOverview.data,
+              backgroundColor: ["#4361ee", "#06d6a0", "#ffd166", "#4cc9f0"],
+              borderRadius: 8,
+              borderSkipped: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 },
+            },
+          },
+        },
+      });
+    }
+
+    if (chartMonthlyEl) {
+      new Chart(chartMonthlyEl, {
+        type: "line",
+        data: {
+          labels: chartMonthly.labels,
+          datasets: [
+            {
+              label: "Tài liệu đã duyệt",
+              data: chartMonthly.data,
+              borderColor: "#06d6a0",
+              backgroundColor: "rgba(6, 214, 160, 0.15)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 },
+            },
+          },
+        },
+      });
+    }
+  });
+</script>
 {% endblock %}
