@@ -99,6 +99,17 @@
           <!-- Nút hành động -->
           <div class="d-flex flex-wrap gap-2 pt-3 border-top resource-detail-actions">
             {% if user.is_authenticated %}
+            <form method="post" action="{% url 'resources:toggle_favorite' resource.slug %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+              <button
+                type="submit"
+                class="btn {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}"
+              >
+                <i class="{% if is_favorited %}fas{% else %}far{% endif %} fa-heart me-2"></i>
+                {% if is_favorited %}Bỏ yêu thích{% else %}Yêu thích{% endif %}
+              </button>
+            </form>
             <!-- AI Summarize Button -->
             <button
               type="button"
@@ -303,7 +314,7 @@
     <!-- Sidebar -->
     <div class="col-lg-4">
       <!-- Thông tin tệp -->
-      {% if resource.file %}
+      {% if resource.has_file_attachment %}
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-transparent">
           <h6 class="fw-bold mb-0">

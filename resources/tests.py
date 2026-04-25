@@ -6,7 +6,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from accounts.models import User
 from categories.models import Category
-from resources.models import Resource, Comment, SubmissionLog
+from resources.models import Resource, Comment, SubmissionLog, Favorite
 
 
 class ResourceModelTest(TestCase):
@@ -119,6 +119,30 @@ class SubmissionLogTest(TestCase):
         self.assertEqual(log.old_status, 'pending')
         self.assertEqual(log.new_status, 'approved')
         self.assertEqual(log.reviewer, self.admin)
+
+
+class FavoriteModelTest(TestCase):
+    """Test model Favorite."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='fav_user', password='testpass123', role=User.Role.USER
+        )
+        self.category = Category.objects.create(name='Yêu thích')
+        self.resource = Resource.objects.create(
+            title='Tài liệu yêu thích',
+            description='Mô tả',
+            content='Nội dung',
+            category=self.category,
+            author=self.user,
+            status='approved',
+        )
+
+    def test_favorite_unique_user_resource(self):
+        """Kiểm tra mỗi user chỉ yêu thích 1 lần trên 1 tài liệu."""
+        Favorite.objects.create(user=self.user, resource=self.resource)
+        Favorite.objects.get_or_create(user=self.user, resource=self.resource)
+        self.assertEqual(Favorite.objects.count(), 1)
 
 
 class ResourceViewsTest(TestCase):
@@ -247,3 +271,37 @@ class ResourceViewsTest(TestCase):
             reverse('resources:list') + f'?category={self.category.id}'
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_toggle_favorite_requires_login(self):
+        """Kiểm tra toggle favorite cần đăng nhập."""
+        response = self.client.post(
+            reverse('resources:toggle_favorite', args=[self.resource.slug])
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_toggle_favorite_add_and_remove(self):
+        """Kiểm tra thêm/bỏ yêu thích."""
+        self.client.login(username='user', password='user123')
+
+        add_resp = self.client.post(
+            reverse('resources:toggle_favorite', args=[self.resource.slug]),
+            {'next': reverse('resources:detail', args=[self.resource.slug])},
+        )
+        self.assertEqual(add_resp.status_code, 302)
+        self.assertTrue(Favorite.objects.filter(user=self.user, resource=self.resource).exists())
+
+        remove_resp = self.client.post(
+            reverse('resources:toggle_favorite', args=[self.resource.slug]),
+            {'next': reverse('resources:detail', args=[self.resource.slug])},
+        )
+        self.assertEqual(remove_resp.status_code, 302)
+        self.assertFalse(Favorite.objects.filter(user=self.user, resource=self.resource).exists())
+
+    def test_my_favorites_page(self):
+        """Kiểm tra trang danh sách yêu thích."""
+        Favorite.objects.create(user=self.user, resource=self.resource)
+        self.client.login(username='user', password='user123')
+
+        response = self.client.get(reverse('resources:favorites'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Python nâng cao')

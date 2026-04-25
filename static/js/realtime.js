@@ -219,8 +219,7 @@ document.addEventListener("DOMContentLoaded", function () {
     container.style.display = "block";
   }
 
-  // Khởi tạo live search cho cả navbar và hero section
-  initLiveSearch("liveSearchInput", "liveSearchResults");
+  // Khởi tạo live search cho hero section
   initLiveSearch("heroSearchInput", "heroSearchResults");
 
   // ============================================================

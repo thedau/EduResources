@@ -3,13 +3,16 @@ Mô hình Tài liệu, Bình luận và Nhật ký duyệt cho EduResource.
 Bao gồm: Resource, Comment, SubmissionLog.
 """
 
+import io
+import mimetypes
+import os
+
 from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
-from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from unidecode import unidecode
 from categories.models import Category
-import os
 
 
 class Resource(models.Model):
@@ -80,6 +83,28 @@ class Resource(models.Model):
         blank=True,
         null=True,
         help_text='Cho phép: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP, RAR (tối đa 10MB)'
+    )
+    file_blob = models.BinaryField(
+        verbose_name='Nội dung tệp (DB)',
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    file_name = models.CharField(
+        max_length=255,
+        verbose_name='Tên tệp gốc',
+        blank=True,
+        default='',
+    )
+    file_content_type = models.CharField(
+        max_length=120,
+        verbose_name='MIME type của tệp',
+        blank=True,
+        default='',
+    )
+    file_size = models.PositiveBigIntegerField(
+        verbose_name='Kích thước tệp (bytes)',
+        default=0,
     )
     thumbnail = models.ImageField(
         upload_to='resources/thumbnails/%Y/%m/',
@@ -154,15 +179,57 @@ class Resource(models.Model):
     @property
     def file_extension(self):
         """Lấy phần mở rộng của tệp đính kèm."""
-        if self.file:
-            return os.path.splitext(self.file.name)[1].lower()
+        filename = self.file_basename
+        if filename:
+            return os.path.splitext(filename)[1].lower()
         return ''
+
+    @property
+    def has_file_attachment(self):
+        """Kiểm tra tài liệu có tệp đính kèm (storage hoặc DB)."""
+        return bool(self.file) or bool(self.file_blob)
+
+    @property
+    def file_basename(self):
+        """Lấy tên file hiển thị ưu tiên theo tên gốc người dùng tải lên."""
+        if self.file_name:
+            return os.path.basename(self.file_name)
+        if self.file:
+            return os.path.basename(self.file.name)
+        return ''
+
+    def get_file_stream(self):
+        """Mở stream đọc tệp từ storage; fallback sang dữ liệu trong DB nếu có."""
+        if self.file:
+            try:
+                return self.file.open('rb')
+            except Exception:
+                # Fallback khi file vật lý bị mất ở môi trường deploy không persistent.
+                pass
+        if self.file_blob:
+            return io.BytesIO(self.file_blob)
+        return None
+
+    def get_file_content_type(self):
+        """Lấy MIME type đã lưu hoặc đoán từ tên tệp."""
+        if self.file_content_type:
+            return self.file_content_type
+        guessed, _ = mimetypes.guess_type(self.file_basename)
+        return guessed or 'application/octet-stream'
 
     @property
     def file_size_display(self):
         """Hiển thị kích thước tệp dạng đọc được."""
-        if self.file and self.file.size:
-            size = self.file.size
+        size = 0
+        if self.file_size:
+            size = self.file_size
+        elif self.file:
+            try:
+                size = self.file.size
+            except Exception:
+                size = 0
+
+        if size > 0:
             if size < 1024:
                 return f"{size} B"
             elif size < 1024 * 1024:
@@ -287,3 +354,43 @@ class SubmissionLog(models.Model):
 
     def __str__(self):
         return f"{self.resource} | {self.get_old_status_display()} → {self.get_new_status_display()}"
+
+
+class Favorite(models.Model):
+    """Tài liệu yêu thích của người dùng."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='favorite_resources',
+        verbose_name='Người dùng'
+    )
+    resource = models.ForeignKey(
+        Resource,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Tài liệu'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Ngày tạo'
+    )
+
+    class Meta:
+        verbose_name = 'Tài liệu yêu thích'
+        verbose_name_plural = 'Tài liệu yêu thích'
+        db_table = 'resources_favorite'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'resource'],
+                name='unique_user_resource_favorite'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='idx_favorite_user_created'),
+            models.Index(fields=['resource'], name='idx_favorite_resource'),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} ♥ {self.resource}"

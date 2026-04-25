@@ -4,8 +4,6 @@ Xử lý: CRUD tài liệu, tìm kiếm, lọc, sắp xếp, bình luận,
 quy trình duyệt (phê duyệt/từ chối), tải xuống tệp.
 """
 
-import mimetypes
-import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -13,7 +11,8 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.db.models import Q, Avg, Count, F
 from django.http import FileResponse, Http404, JsonResponse
-from .models import Resource, Comment, SubmissionLog
+from django.views.decorators.http import require_POST
+from .models import Resource, Comment, SubmissionLog, Favorite
 from .forms import ResourceForm, CommentForm, ResourceRejectForm
 from categories.models import Category
 from accounts.decorators import admin_required
@@ -126,6 +125,10 @@ def resource_detail(request, slug):
     comments = resource.comments.select_related('user').order_by('-created_at')
     comment_form = CommentForm()
 
+    is_favorited = False
+    if request.user.is_authenticated:
+        is_favorited = Favorite.objects.filter(user=request.user, resource=resource).exists()
+
     # Tài liệu liên quan (cùng danh mục), annotate rating
     related_resources = _annotate_resources(
         Resource.objects.filter(
@@ -145,6 +148,60 @@ def resource_detail(request, slug):
         'comment_form': comment_form,
         'related_resources': related_resources,
         'submission_logs': submission_logs,
+        'is_favorited': is_favorited,
+    })
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, slug):
+    """Thêm/bỏ tài liệu yêu thích."""
+    resource = get_object_or_404(Resource, slug=slug)
+
+    # Chỉ cho phép yêu thích tài liệu đã duyệt hoặc của chính mình hoặc admin
+    if resource.status != Resource.Status.APPROVED and resource.author != request.user and not request.user.is_admin:
+        messages.error(request, 'Bạn không có quyền thao tác tài liệu này.')
+        return redirect('resources:list')
+
+    favorite, created = Favorite.objects.get_or_create(user=request.user, resource=resource)
+    if created:
+        messages.success(request, 'Đã thêm vào danh sách yêu thích.')
+    else:
+        favorite.delete()
+        messages.info(request, 'Đã bỏ khỏi danh sách yêu thích.')
+
+    next_url = request.POST.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('resources:detail', slug=resource.slug)
+
+
+@login_required
+def my_favorites(request):
+    """Danh sách tài liệu yêu thích của người dùng."""
+    search_query = request.GET.get('q', '').strip()
+
+    favorites = Favorite.objects.filter(
+        user=request.user,
+        resource__status=Resource.Status.APPROVED,
+    ).select_related('resource', 'resource__category', 'resource__author')
+
+    if search_query:
+        favorites = favorites.filter(
+            Q(resource__title__icontains=search_query)
+            | Q(resource__description__icontains=search_query)
+            | Q(resource__content__icontains=search_query)
+        )
+
+    favorites = favorites.order_by('-created_at')
+
+    paginator = Paginator(favorites, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'resources/favorites.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
     })
 
 
@@ -379,16 +436,20 @@ def download_resource(request, slug):
     """Tải xuống tệp đính kèm của tài liệu - yêu cầu đăng nhập."""
     resource = get_object_or_404(Resource, slug=slug, status='approved')
 
-    if not resource.file:
+    if not resource.has_file_attachment:
         raise Http404('Tài liệu này không có tệp đính kèm.')
+
+    file_stream = resource.get_file_stream()
+    if not file_stream:
+        raise Http404('Không thể đọc tệp đính kèm.')
 
     # Tăng lượt tải (atomic)
     Resource.objects.filter(pk=resource.pk).update(download_count=F('download_count') + 1)
 
     # Trả về tệp
-    content_type, _ = mimetypes.guess_type(resource.file.name)
-    response = FileResponse(resource.file.open('rb'), content_type=content_type or 'application/octet-stream')
-    response['Content-Disposition'] = f'attachment; filename="{resource.file.name.split("/")[-1]}"'
+    filename = resource.file_basename or f'{resource.slug}{resource.file_extension}'
+    response = FileResponse(file_stream, content_type=resource.get_file_content_type())
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 
@@ -436,7 +497,7 @@ def preview_resource(request, slug):
     """
     resource = get_object_or_404(Resource, slug=slug, status='approved')
 
-    if not resource.file:
+    if not resource.has_file_attachment:
         raise Http404('Tài liệu này không có tệp đính kèm.')
 
     ext = resource.file_extension
@@ -449,11 +510,16 @@ def preview_resource(request, slug):
         preview_type = 'docx'
         try:
             import mammoth
-            with resource.file.open('rb') as f:
-                result = mammoth.convert_to_html(f)
-                docx_html = result.value
+            file_stream = resource.get_file_stream()
+            if not file_stream:
+                raise ValueError('Không thể mở tệp để xem trước.')
+            result = mammoth.convert_to_html(file_stream)
+            docx_html = result.value
         except Exception:
             docx_html = '<p class="text-danger">Không thể đọc nội dung tài liệu Word.</p>'
+        finally:
+            if 'file_stream' in locals() and file_stream:
+                file_stream.close()
     elif ext == '.doc':
         preview_type = 'doc_unsupported'
     else:
@@ -470,10 +536,14 @@ def serve_file_inline(request, slug):
     """Phục vụ tệp PDF inline (không download) để PDF.js có thể đọc."""
     resource = get_object_or_404(Resource, slug=slug, status='approved')
 
-    if not resource.file or resource.file_extension != '.pdf':
+    if not resource.has_file_attachment or resource.file_extension != '.pdf':
+        raise Http404
+
+    file_stream = resource.get_file_stream()
+    if not file_stream:
         raise Http404
 
     content_type = 'application/pdf'
-    response = FileResponse(resource.file.open('rb'), content_type=content_type)
-    response['Content-Disposition'] = f'inline; filename="{os.path.basename(resource.file.name)}"'
+    response = FileResponse(file_stream, content_type=content_type)
+    response['Content-Disposition'] = f'inline; filename="{resource.file_basename or f"{resource.slug}.pdf"}"'
     return response

@@ -86,27 +86,69 @@
 
   <div class="row g-4 mb-4">
     <div class="col-4 col-md-3">
-      <div class="card border-0 shadow-sm text-center p-3">
+      <div class="card border-0 shadow-sm text-center p-3 h-100 dashboard-mini-card">
         <p class="text-muted mb-1">Đã duyệt</p>
         <h4 class="fw-bold text-success" id="statApproved">{{ stats.approved_resources }}</h4>
       </div>
     </div>
     <div class="col-4 col-md-3">
-      <div class="card border-0 shadow-sm text-center p-3">
+      <div class="card border-0 shadow-sm text-center p-3 h-100 dashboard-mini-card">
         <p class="text-muted mb-1">Từ chối</p>
         <h4 class="fw-bold text-danger" id="statRejected">{{ stats.rejected_resources }}</h4>
       </div>
     </div>
     <div class="col-4 col-md-3">
-      <div class="card border-0 shadow-sm text-center p-3">
+      <div class="card border-0 shadow-sm text-center p-3 h-100 dashboard-mini-card">
         <p class="text-muted mb-1">Tổng lượt xem</p>
         <h4 class="fw-bold text-info" id="statViews">{{ stats.total_views }}</h4>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="card border-0 shadow-sm text-center p-3">
+      <div class="card border-0 shadow-sm text-center p-3 h-100 dashboard-mini-card">
         <p class="text-muted mb-1"><i class="fas fa-circle text-success me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>Đang online</p>
         <h4 class="fw-bold text-primary" id="dashOnlineCount">0</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 h-100 dashboard-chart-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-chart-pie text-success me-2"></i>Trạng thái tài liệu
+          </h5>
+          <span class="badge bg-light text-muted">Realtime</span>
+        </div>
+        <div class="card-body">
+          <canvas id="dashboardStatusChart" height="240"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0 h-100 dashboard-chart-card">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-chart-line text-primary me-2"></i>Xu hướng đăng tài liệu (6 tháng)
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="dashboardMonthlyChart" height="240"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card shadow-sm border-0 dashboard-chart-card">
+        <div class="card-header bg-transparent">
+          <h5 class="fw-bold mb-0">
+            <i class="fas fa-layer-group text-info me-2"></i>Top danh mục có nhiều tài liệu
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="dashboardCategoryChart" height="130"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -114,7 +156,7 @@
   <div class="row g-4">
     <!-- Tài liệu chờ duyệt -->
     <div class="col-lg-6">
-      <div class="card shadow-sm border-0">
+      <div class="card shadow-sm border-0 h-100">
         <div
           class="card-header bg-transparent d-flex justify-content-between align-items-center"
         >
@@ -170,7 +212,7 @@
 
     <!-- Hoạt động gần đây -->
     <div class="col-lg-6">
-      <div class="card shadow-sm border-0">
+      <div class="card shadow-sm border-0 h-100">
         <div class="card-header bg-transparent">
           <h5 class="fw-bold mb-0">
             <i class="fas fa-history text-info me-2"></i>Hoạt động gần đây
@@ -210,7 +252,7 @@
   <div class="row g-4 mt-2">
     <!-- Top tài liệu -->
     <div class="col-lg-6">
-      <div class="card shadow-sm border-0">
+      <div class="card shadow-sm border-0 h-100">
         <div class="card-header bg-transparent">
           <h5 class="fw-bold mb-0">
             <i class="fas fa-fire text-danger me-2"></i>Tài liệu phổ biến
@@ -238,7 +280,7 @@
 
     <!-- Thành viên mới -->
     <div class="col-lg-6">
-      <div class="card shadow-sm border-0">
+      <div class="card shadow-sm border-0 h-100">
         <div
           class="card-header bg-transparent d-flex justify-content-between align-items-center"
         >
@@ -268,4 +310,101 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const chartStatus = JSON.parse("{{ chart_status|escapejs }}");
+    const chartMonthly = JSON.parse("{{ chart_monthly|escapejs }}");
+    const chartCategories = JSON.parse("{{ chart_categories|escapejs }}");
+
+    const statusEl = document.getElementById("dashboardStatusChart");
+    const monthlyEl = document.getElementById("dashboardMonthlyChart");
+    const categoryEl = document.getElementById("dashboardCategoryChart");
+
+    if (statusEl) {
+      new Chart(statusEl, {
+        type: "doughnut",
+        data: {
+          labels: chartStatus.labels,
+          datasets: [
+            {
+              data: chartStatus.data,
+              backgroundColor: ["#06d6a0", "#ffd166", "#ef476f"],
+              borderWidth: 2,
+              borderColor: "#fff",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+          },
+        },
+      });
+    }
+
+    if (monthlyEl) {
+      new Chart(monthlyEl, {
+        type: "line",
+        data: {
+          labels: chartMonthly.labels,
+          datasets: [
+            {
+              label: "Tài liệu mới",
+              data: chartMonthly.data,
+              borderColor: "#4361ee",
+              backgroundColor: "rgba(67, 97, 238, 0.12)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 },
+            },
+          },
+        },
+      });
+    }
+
+    if (categoryEl) {
+      new Chart(categoryEl, {
+        type: "bar",
+        data: {
+          labels: chartCategories.labels,
+          datasets: [
+            {
+              label: "Số tài liệu",
+              data: chartCategories.data,
+              backgroundColor: ["#4361ee", "#4cc9f0", "#7209b7", "#06d6a0", "#f72585", "#ffd166"],
+              borderRadius: 8,
+              borderSkipped: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 },
+            },
+          },
+        },
+      });
+    }
+  });
+</script>
 {% endblock %}

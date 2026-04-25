@@ -1,7 +1,7 @@
 """Cấu hình Django Admin cho mô hình Tài liệu, Bình luận, Nhật ký."""
 
 from django.contrib import admin
-from .models import Resource, Comment, SubmissionLog
+from .models import Resource, Comment, SubmissionLog, Favorite
 
 
 class CommentInline(admin.TabularInline):
@@ -48,4 +48,14 @@ class SubmissionLogAdmin(admin.ModelAdmin):
     list_display = ['resource', 'reviewer', 'old_status', 'new_status', 'created_at']
     list_filter = ['new_status', 'created_at']
     search_fields = ['resource__title', 'note']
+    ordering = ['-created_at']
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    """Cấu hình hiển thị Yêu thích trong trang quản trị."""
+
+    list_display = ['user', 'resource', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['user__username', 'user__full_name', 'resource__title']
     ordering = ['-created_at']

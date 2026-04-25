@@ -4,16 +4,46 @@ Hiển thị tổng quan hệ thống và biểu đồ thống kê.
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.shortcuts import render
 from django.db.models import Count, Sum, Q
-from django.db.models.functions import ExtractYear, ExtractMonth
 from django.http import JsonResponse
 from django.utils import timezone
 from resources.models import Resource, Comment, SubmissionLog
 from categories.models import Category
 from accounts.models import User
 from accounts.decorators import admin_required
+
+
+def _build_monthly_chart_data(month_count=12, status=None):
+    """Tạo dữ liệu biểu đồ theo tháng, không phụ thuộc hàm datetime của DB."""
+    now = timezone.now()
+    month_pairs = []
+    for offset in range(month_count - 1, -1, -1):
+        month = now.month - offset
+        year = now.year
+        while month <= 0:
+            month += 12
+            year -= 1
+        month_pairs.append((year, month))
+
+    monthly_map = {(year, month): 0 for year, month in month_pairs}
+
+    resources = Resource.objects.filter(created_at__isnull=False)
+    if status:
+        resources = resources.filter(status=status)
+
+    for created_at in resources.values_list('created_at', flat=True):
+        if not created_at:
+            continue
+        key = (created_at.year, created_at.month)
+        if key in monthly_map:
+            monthly_map[key] += 1
+
+    return {
+        'labels': [datetime(year, month, 1).strftime('%m/%Y') for year, month in month_pairs],
+        'data': [monthly_map[(year, month)] for year, month in month_pairs],
+    }
 
 
 @admin_required
@@ -62,12 +92,36 @@ def dashboard(request):
         status='approved'
     ).order_by('-view_count')[:5]
 
+    # Dữ liệu biểu đồ nhanh trên dashboard
+    chart_status = {
+        'labels': ['Đã duyệt', 'Chờ duyệt', 'Từ chối'],
+        'data': [
+            stats['approved_resources'],
+            stats['pending_resources'],
+            stats['rejected_resources'],
+        ],
+    }
+
+    chart_monthly = _build_monthly_chart_data(month_count=6)
+
+    category_data = Category.objects.annotate(
+        resource_count=Count('resources', filter=Q(resources__status='approved'))
+    ).filter(resource_count__gt=0).order_by('-resource_count')[:6]
+
+    chart_categories = {
+        'labels': [cat.name for cat in category_data],
+        'data': [cat.resource_count for cat in category_data],
+    }
+
     context = {
         'stats': stats,
         'pending_resources': pending_resources,
         'recent_logs': recent_logs,
         'recent_users': recent_users,
         'top_resources': top_resources,
+        'chart_status': json.dumps(chart_status, ensure_ascii=False),
+        'chart_monthly': json.dumps(chart_monthly, ensure_ascii=False),
+        'chart_categories': json.dumps(chart_categories, ensure_ascii=False),
     }
     return render(request, 'dashboard/index.html', context)
 
@@ -100,21 +154,7 @@ def reports(request):
     }
 
     # 3. Tài liệu theo tháng (biểu đồ đường - 12 tháng gần nhất)
-    twelve_months_ago = timezone.now() - timedelta(days=365)
-    monthly_data = Resource.objects.filter(
-        created_at__gte=twelve_months_ago,
-        created_at__isnull=False,
-    ).annotate(
-        year=ExtractYear('created_at'),
-        month=ExtractMonth('created_at'),
-    ).values('year', 'month').annotate(
-        count=Count('id')
-    ).order_by('year', 'month')
-
-    chart_monthly = {
-        'labels': [f"{item['month']:02d}/{item['year']}" for item in monthly_data if item['year'] and item['month']],
-        'data': [item['count'] for item in monthly_data if item['year'] and item['month']],
-    }
+    chart_monthly = _build_monthly_chart_data(month_count=12)
 
     # 4. Top người đóng góp (biểu đồ cột ngang)
     top_contributors = User.objects.annotate(
@@ -125,6 +165,12 @@ def reports(request):
         'labels': [user.full_name or user.username for user in top_contributors],
         'data': [user.resource_count for user in top_contributors],
     }
+
+    if not chart_contributors['labels']:
+        chart_contributors = {
+            'labels': ['Chưa có dữ liệu'],
+            'data': [0],
+        }
 
     # 5. Thống kê tổng hợp - gộp 1 query
     summary_agg = Resource.objects.aggregate(

@@ -1,0 +1,31 @@
+<svg width="960" height="720" viewBox="0 0 960 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Học tập trực tuyến">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#dce6ff" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ffb703"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="150" y="120" width="660" height="460" rx="30" fill="url(#g1)" fill-opacity="0.14"/>
+  <rect x="190" y="160" width="580" height="360" rx="22" fill="#ffffff" fill-opacity="0.14"/>
+
+  <circle cx="480" cy="272" r="64" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="390" y="348" width="180" height="110" rx="54" fill="#ffffff" fill-opacity="0.9"/>
+
+  <path d="M234 474c56-48 127-62 206-62h42v84h-42c-74 0-138 17-194 51l-12 7-22-66 22-14Z" fill="#ffffff" fill-opacity="0.9"/>
+  <path d="M726 474c-56-48-127-62-206-62h-42v84h42c74 0 138 17 194 51l12 7 22-66-22-14Z" fill="#ffffff" fill-opacity="0.9"/>
+
+  <rect x="264" y="202" width="48" height="8" rx="4" fill="#3f37c9" fill-opacity="0.35"/>
+  <rect x="264" y="220" width="78" height="8" rx="4" fill="#3f37c9" fill-opacity="0.25"/>
+
+  <rect x="648" y="202" width="48" height="8" rx="4" fill="#3f37c9" fill-opacity="0.35"/>
+  <rect x="618" y="220" width="78" height="8" rx="4" fill="#3f37c9" fill-opacity="0.25"/>
+
+  <circle cx="286" cy="382" r="18" fill="url(#g2)"/>
+  <circle cx="676" cy="382" r="18" fill="url(#g2)"/>
+  <circle cx="480" cy="148" r="14" fill="url(#g2)"/>
+</svg>

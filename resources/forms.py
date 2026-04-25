@@ -1,9 +1,11 @@
+import os
+import mimetypes
+
 """
 Forms cho ứng dụng Tài liệu.
 Bao gồm: Form tài liệu, Form bình luận, kiểm tra tệp tải lên.
 """
 
-import os
 from django import forms
 from django.conf import settings
 from .models import Resource, Comment
@@ -101,6 +103,34 @@ class ResourceForm(forms.ModelForm):
                     f'Định dạng ảnh không được hỗ trợ. Cho phép: {", ".join(allowed_exts)}'
                 )
         return image
+
+    def save(self, commit=True):
+        """Lưu tài liệu và đồng bộ dữ liệu file vào DB khi được bật qua settings."""
+        instance = super().save(commit=False)
+        uploaded_file = self.cleaned_data.get('file')
+
+        if uploaded_file:
+            instance.file_name = uploaded_file.name
+            instance.file_content_type = uploaded_file.content_type or (
+                mimetypes.guess_type(uploaded_file.name)[0] or 'application/octet-stream'
+            )
+            instance.file_size = uploaded_file.size or 0
+
+            if getattr(settings, 'STORE_UPLOADS_IN_DB', False):
+                file_bytes = uploaded_file.read()
+                uploaded_file.seek(0)
+                instance.file_blob = file_bytes
+        elif not instance.file:
+            # Nếu bỏ tệp hiện tại, xóa metadata liên quan.
+            instance.file_blob = None
+            instance.file_name = ''
+            instance.file_content_type = ''
+            instance.file_size = 0
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class CommentForm(forms.ModelForm):
