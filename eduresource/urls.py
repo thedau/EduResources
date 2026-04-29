@@ -22,8 +22,8 @@ urlpatterns = [
     path('', include('ai_features.urls')),
 ]
 
-# Phục vụ tệp media trong chế độ phát triển
-if settings.DEBUG:
+# Phục vụ tệp media khi DEBUG hoặc được bật rõ ràng
+if settings.DEBUG or getattr(settings, "SERVE_MEDIA", False):
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
