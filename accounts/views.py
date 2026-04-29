@@ -8,12 +8,12 @@ from django.contrib.auth import login, logout, authenticate, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode, url_has_allowed_host_and_scheme
 from django.utils.encoding import force_bytes, force_str
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django_ratelimit.decorators import ratelimit
-from .models import User
+from .models import User, create_audit_log
 from .forms import RegisterForm, LoginForm, ProfileForm, UserRoleForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm
 from .decorators import admin_required
 
@@ -55,8 +55,14 @@ def login_view(request):
             login(request, user)
             messages.success(request, f'Chào mừng {user.full_name or user.username} quay lại!')
             # Chuyển hướng đến trang trước đó nếu có
-            next_url = request.GET.get('next', 'home')
-            return redirect(next_url)
+            next_url = request.GET.get('next', '')
+            if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
+            return redirect('home')
         else:
             messages.error(request, 'Tên đăng nhập hoặc mật khẩu không đúng.')
     else:
@@ -206,10 +212,18 @@ def update_user_role(request, user_id):
     user = get_object_or_404(User, pk=user_id)
 
     if request.method == 'POST':
+        old_role = user.role
         form = UserRoleForm(request.POST, instance=user)
         if form.is_valid():
             form.save()
             messages.success(request, f'Đã cập nhật vai trò cho {user.full_name or user.username}.')
+            create_audit_log(
+                actor=request.user,
+                action='update_user_role',
+                target=user,
+                metadata={'old_role': old_role, 'new_role': user.role},
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
         else:
             messages.error(request, 'Không thể cập nhật vai trò.')
 

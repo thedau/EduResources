@@ -8,9 +8,11 @@ from datetime import timedelta
 from django.shortcuts import get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db.models import Q, Avg, Count, Sum
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 from .models import Notification, UserActivity
 from resources.models import Resource, Comment
@@ -24,11 +26,17 @@ from accounts.decorators import admin_required
 # ============================================================
 
 @login_required
+@ratelimit(key='user', rate='120/m', method='GET', block=True)
 def api_notifications(request):
     """
     API trả về danh sách thông báo chưa đọc + số lượng.
     Được gọi bởi JS mỗi 15 giây.
     """
+    cache_key = f"notifications:{request.user.pk}"
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached)
+
     unread_count = Notification.objects.filter(
         recipient=request.user, is_read=False
     ).count()
@@ -54,6 +62,7 @@ def api_notifications(request):
             for n in notifications
         ],
     }
+    cache.set(cache_key, data, 10)
     return JsonResponse(data)
 
 
@@ -64,6 +73,7 @@ def api_mark_read(request, pk):
     notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
     notification.is_read = True
     notification.save(update_fields=['is_read'])
+    cache.delete(f"notifications:{request.user.pk}")
     return JsonResponse({'status': 'ok'})
 
 
@@ -74,6 +84,7 @@ def api_mark_all_read(request):
     Notification.objects.filter(
         recipient=request.user, is_read=False
     ).update(is_read=True)
+    cache.delete(f"notifications:{request.user.pk}")
     return JsonResponse({'status': 'ok'})
 
 
@@ -81,6 +92,7 @@ def api_mark_all_read(request):
 # 4. LIVE SEARCH API
 # ============================================================
 
+@ratelimit(key='ip', rate='60/m', method='GET', block=True)
 def api_live_search(request):
     """
     API tìm kiếm tức thì - trả về kết quả JSON.
@@ -89,6 +101,11 @@ def api_live_search(request):
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse({'results': [], 'total': 0})
+
+    cache_key = f"live_search:{q.lower()}"
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached)
 
     resources = Resource.objects.filter(
         status='approved'
@@ -121,11 +138,13 @@ def api_live_search(request):
         Q(description__icontains=q)
     ).count()
 
-    return JsonResponse({
+    data = {
         'results': results,
         'total': total,
         'query': q,
-    })
+    }
+    cache.set(cache_key, data, 15)
+    return JsonResponse(data)
 
 
 # ============================================================
@@ -137,8 +156,14 @@ def api_online_users(request):
     API trả về số người đang online.
     Người dùng được coi là online nếu hoạt động trong 5 phút gần nhất.
     """
+    cache_key = "online_users_count"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse({'online_count': cached})
+
     threshold = timezone.now() - timedelta(minutes=5)
     online_count = UserActivity.objects.filter(last_seen__gte=threshold).count()
+    cache.set(cache_key, online_count, 10)
 
     return JsonResponse({
         'online_count': online_count,
@@ -155,6 +180,11 @@ def api_dashboard_stats(request):
     API trả về thống kê dashboard real-time.
     Được gọi bởi JS mỗi 30 giây trên trang dashboard.
     """
+    cache_key = "dashboard_stats"
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached)
+
     resource_agg = Resource.objects.aggregate(
         total=Count('id'),
         approved=Count('id', filter=Q(status='approved')),
@@ -179,6 +209,7 @@ def api_dashboard_stats(request):
         'total_comments': Comment.objects.count(),
         'online_count': online_count,
     }
+    cache.set(cache_key, data, 10)
     return JsonResponse(data)
 
 

@@ -75,6 +75,7 @@ def api_chat(request, slug):
 
 
 @login_required
+@ratelimit(key='user', rate='30/h', method='POST', block=True)
 @require_POST
 def api_suggest_tags(request):
     """API gợi ý danh mục và tag cho tài liệu."""
@@ -96,9 +97,11 @@ def api_suggest_tags(request):
     if resource_id:
         try:
             resource = Resource.objects.get(pk=resource_id)
+            if resource.status != 'approved' and resource.author != request.user and not request.user.is_admin:
+                return JsonResponse({'success': False, 'error': 'Không có quyền truy cập.'}, status=403)
             file_content = _extract_file_content(resource)
         except Resource.DoesNotExist:
-            pass
+            return JsonResponse({'success': False, 'error': 'Tài liệu không tồn tại.'}, status=404)
 
     success, suggestions = suggest_tags(title, description, content, file_content)
 

@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
+from .models import User, AuditLog
 
 
 @admin.register(User)
@@ -25,3 +25,11 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('full_name', 'email', 'role')
         }),
     )
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ['action', 'actor', 'target_type', 'target_id', 'ip_address', 'created_at']
+    list_filter = ['action', 'target_type', 'created_at']
+    search_fields = ['action', 'target_type', 'target_id', 'actor__username']
+    ordering = ['-created_at']

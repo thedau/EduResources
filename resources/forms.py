@@ -8,7 +8,27 @@ Bao gồm: Form tài liệu, Form bình luận, kiểm tra tệp tải lên.
 
 from django import forms
 from django.conf import settings
+from PIL import Image
 from .models import Resource, Comment
+
+ALLOWED_FILE_MIME_TYPES = {
+    '.pdf': {'application/pdf'},
+    '.doc': {'application/msword'},
+    '.docx': {'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},
+    '.ppt': {'application/vnd.ms-powerpoint'},
+    '.pptx': {'application/vnd.openxmlformats-officedocument.presentationml.presentation'},
+    '.xls': {'application/vnd.ms-excel'},
+    '.xlsx': {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'},
+    '.zip': {'application/zip', 'application/x-zip-compressed'},
+    '.rar': {'application/vnd.rar', 'application/x-rar-compressed'},
+}
+
+ALLOWED_IMAGE_MIME_TYPES = {
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+}
 
 
 class ResourceForm(forms.ModelForm):
@@ -80,6 +100,10 @@ class ResourceForm(forms.ModelForm):
                 raise forms.ValidationError(
                     f'Định dạng tệp không được hỗ trợ. Cho phép: {", ".join(allowed_exts)}'
                 )
+            declared_type = file.content_type or (mimetypes.guess_type(file.name)[0] or '')
+            allowed_mimes = ALLOWED_FILE_MIME_TYPES.get(ext, set())
+            if declared_type and allowed_mimes and declared_type not in allowed_mimes:
+                raise forms.ValidationError('MIME type của tệp không hợp lệ so với phần mở rộng.')
         return file
 
     def clean_thumbnail(self):
@@ -102,6 +126,19 @@ class ResourceForm(forms.ModelForm):
                 raise forms.ValidationError(
                     f'Định dạng ảnh không được hỗ trợ. Cho phép: {", ".join(allowed_exts)}'
                 )
+            declared_type = image.content_type or (mimetypes.guess_type(image.name)[0] or '')
+            if declared_type and declared_type not in ALLOWED_IMAGE_MIME_TYPES:
+                raise forms.ValidationError('MIME type của ảnh không hợp lệ.')
+            try:
+                img = Image.open(image)
+                img.verify()
+            except Exception:
+                raise forms.ValidationError('Ảnh không hợp lệ hoặc bị hỏng.')
+            finally:
+                try:
+                    image.seek(0)
+                except Exception:
+                    pass
         return image
 
     def save(self, commit=True):

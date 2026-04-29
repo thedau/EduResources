@@ -57,42 +57,51 @@ def _extract_file_content(resource):
     Trích xuất nội dung văn bản từ file đính kèm.
     Hỗ trợ: PDF, DOCX, TXT.
     """
-    if not resource.file:
+    if not resource.has_file_attachment:
         return ""
 
     ext = resource.file_extension
     content = ""
+    file_stream = resource.get_file_stream()
+    if not file_stream:
+        return ""
 
     try:
         if ext == '.pdf':
             try:
                 import PyPDF2
-                with resource.file.open('rb') as f:
-                    reader = PyPDF2.PdfReader(f)
-                    pages = []
-                    for page in reader.pages[:20]:  # Giới hạn 20 trang
-                        text = page.extract_text()
-                        if text:
-                            pages.append(text)
-                    content = "\n".join(pages)
+                reader = PyPDF2.PdfReader(file_stream)
+                pages = []
+                for page in reader.pages[:20]:  # Giới hạn 20 trang
+                    text = page.extract_text()
+                    if text:
+                        pages.append(text)
+                content = "\n".join(pages)
             except ImportError:
                 pass
 
         elif ext == '.docx':
             try:
                 import mammoth
-                with resource.file.open('rb') as f:
-                    result = mammoth.extract_raw_text(f)
-                    content = result.value
+                result = mammoth.extract_raw_text(file_stream)
+                content = result.value
             except ImportError:
                 pass
 
         elif ext in ('.txt', '.md'):
-            with resource.file.open('r') as f:
-                content = f.read()
+            raw_bytes = file_stream.read()
+            if isinstance(raw_bytes, bytes):
+                content = raw_bytes.decode('utf-8', errors='replace')
+            else:
+                content = str(raw_bytes)
 
     except Exception as e:
         logger.error(f"Lỗi trích xuất nội dung file: {e}")
+    finally:
+        try:
+            file_stream.close()
+        except Exception:
+            pass
 
     # Giới hạn 15000 ký tự để tránh vượt token limit
     return content[:15000] if content else ""

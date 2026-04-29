@@ -16,6 +16,7 @@ from .models import Resource, Comment, SubmissionLog, Favorite
 from .forms import ResourceForm, CommentForm, ResourceRejectForm
 from categories.models import Category
 from accounts.decorators import admin_required
+from accounts.models import create_audit_log
 
 
 def _invalidate_pending_cache():
@@ -293,8 +294,16 @@ def resource_delete(request, slug):
 
     if request.method == 'POST':
         title = resource.title
+        resource_id = resource.pk
         resource.delete()
         messages.success(request, f'Đã xóa tài liệu "{title}" thành công.')
+        create_audit_log(
+            actor=request.user,
+            action='delete_resource',
+            target=None,
+            metadata={'resource_id': resource_id, 'title': title},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
         return redirect('resources:my_resources')
 
     return redirect('resources:detail', slug=slug)
@@ -394,6 +403,13 @@ def approve_resource(request, pk):
             new_status=Resource.Status.APPROVED,
             note='Tài liệu đã được phê duyệt'
         )
+        create_audit_log(
+            actor=request.user,
+            action='approve_resource',
+            target=resource,
+            metadata={'old_status': old_status, 'new_status': Resource.Status.APPROVED},
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
 
         messages.success(request, f'Đã phê duyệt tài liệu "{resource.title}".')
         _invalidate_pending_cache()
@@ -421,6 +437,13 @@ def reject_resource(request, pk):
                 old_status=old_status,
                 new_status=Resource.Status.REJECTED,
                 note=form.cleaned_data['rejection_reason']
+            )
+            create_audit_log(
+                actor=request.user,
+                action='reject_resource',
+                target=resource,
+                metadata={'old_status': old_status, 'new_status': Resource.Status.REJECTED},
+                ip_address=request.META.get('REMOTE_ADDR'),
             )
 
             messages.success(request, f'Đã từ chối tài liệu "{resource.title}".')

@@ -41,7 +41,9 @@ if vercel_url and vercel_url not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(vercel_url)
 
 csrf_origins_env = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
-CSRF_TRUSTED_ORIGINS = csrf_origins_env + ["https://*.ngrok-free.app", "https://*.ngrok.io", "https://*.vercel.app"]
+CSRF_TRUSTED_ORIGINS = list(csrf_origins_env)
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += ["https://*.ngrok-free.app", "https://*.ngrok.io", "https://*.vercel.app"]
 if vercel_url:
     CSRF_TRUSTED_ORIGINS.append(f"https://{vercel_url}")
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
@@ -214,7 +216,14 @@ ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
 
 
 # === EMAIL ===
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = env_int("EMAIL_PORT", 587)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@localhost")
 
 
 # === THÔNG BÁO ===
