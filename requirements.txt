@@ -11,3 +11,5 @@ gunicorn>=22.0
 PyPDF2>=3.0
 django-ratelimit>=4.1
 cryptography>=42.0
+django-cloudinary-storage>=0.3
+cloudinary>=1.40

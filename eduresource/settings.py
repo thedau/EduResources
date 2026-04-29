@@ -49,6 +49,10 @@ if vercel_url:
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 
+# === CLOUDINARY ===
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
+
+
 # === ỨNG DỤNG ===
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -64,6 +68,12 @@ INSTALLED_APPS = [
     "notifications",
     "ai_features",
 ]
+
+if CLOUDINARY_URL:
+    INSTALLED_APPS += [
+        "cloudinary_storage",
+        "cloudinary",
+    ]
 
 
 # === GROQ AI ===
@@ -184,9 +194,13 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+default_storage_backend = "django.core.files.storage.FileSystemStorage"
+if CLOUDINARY_URL:
+    default_storage_backend = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": default_storage_backend,
     },
     "staticfiles": {
         "BACKEND": (
@@ -203,6 +217,7 @@ WHITENOISE_MAX_AGE = env_int("WHITENOISE_MAX_AGE", 0 if DEBUG else 31536000)
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+SERVE_MEDIA = env_bool("SERVE_MEDIA", False)
 
 
 # === CẤU HÌNH TẢI TỆP ===
