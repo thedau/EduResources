@@ -255,6 +255,18 @@ def resource_edit(request, slug):
         form = ResourceForm(request.POST, request.FILES, instance=resource)
         if form.is_valid():
             updated_resource = form.save(commit=False)
+            if request.user.is_admin:
+                old_status = updated_resource.status
+                updated_resource.status = Resource.Status.APPROVED
+                updated_resource.rejection_reason = ''
+                if old_status != Resource.Status.APPROVED:
+                    SubmissionLog.objects.create(
+                        resource=updated_resource,
+                        reviewer=request.user,
+                        old_status=old_status,
+                        new_status=Resource.Status.APPROVED,
+                        note='Admin chỉnh sửa và phê duyệt lại'
+                    )
             # Nếu người dùng thường chỉnh sửa, đặt lại trạng thái chờ duyệt
             if not request.user.is_admin and resource.status == 'approved':
                 old_status = updated_resource.status
@@ -457,7 +469,11 @@ def reject_resource(request, pk):
 @login_required
 def download_resource(request, slug):
     """Tải xuống tệp đính kèm của tài liệu - yêu cầu đăng nhập."""
-    resource = get_object_or_404(Resource, slug=slug, status='approved')
+    resource = get_object_or_404(Resource, slug=slug)
+
+    if resource.status != Resource.Status.APPROVED:
+        if not (request.user == resource.author or request.user.is_admin):
+            raise Http404
 
     if not resource.has_file_attachment:
         raise Http404('Tài liệu này không có tệp đính kèm.')
@@ -518,7 +534,11 @@ def preview_resource(request, slug):
     - DOCX: chuyển đổi sang HTML bằng mammoth và trả về nội dung
     - DOC: không hỗ trợ preview trực tiếp
     """
-    resource = get_object_or_404(Resource, slug=slug, status='approved')
+    resource = get_object_or_404(Resource, slug=slug)
+
+    if resource.status != Resource.Status.APPROVED:
+        if not (request.user.is_authenticated and (request.user == resource.author or request.user.is_admin)):
+            raise Http404
 
     if not resource.has_file_attachment:
         raise Http404('Tài liệu này không có tệp đính kèm.')
@@ -557,7 +577,11 @@ def preview_resource(request, slug):
 
 def serve_file_inline(request, slug):
     """Phục vụ tệp PDF inline (không download) để PDF.js có thể đọc."""
-    resource = get_object_or_404(Resource, slug=slug, status='approved')
+    resource = get_object_or_404(Resource, slug=slug)
+
+    if resource.status != Resource.Status.APPROVED:
+        if not (request.user.is_authenticated and (request.user == resource.author or request.user.is_admin)):
+            raise Http404
 
     if not resource.has_file_attachment or resource.file_extension != '.pdf':
         raise Http404
