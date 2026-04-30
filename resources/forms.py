@@ -34,6 +34,13 @@ ALLOWED_IMAGE_MIME_TYPES = {
 class ResourceForm(forms.ModelForm):
     """Form tạo và chỉnh sửa tài liệu."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_file = getattr(self.instance, 'file', None)
+        self._original_thumbnail = getattr(self.instance, 'thumbnail', None)
+        self.fields['file'].required = False
+        self.fields['thumbnail'].required = False
+
     class Meta:
         model = Resource
         fields = [
@@ -145,6 +152,13 @@ class ResourceForm(forms.ModelForm):
         """Lưu tài liệu và đồng bộ dữ liệu file vào DB khi được bật qua settings."""
         instance = super().save(commit=False)
         uploaded_file = self.cleaned_data.get('file')
+        uploaded_thumbnail = self.cleaned_data.get('thumbnail')
+
+        if not uploaded_file and self._original_file:
+            instance.file = self._original_file
+
+        if not uploaded_thumbnail and self._original_thumbnail:
+            instance.thumbnail = self._original_thumbnail
 
         if uploaded_file:
             instance.file_name = uploaded_file.name
