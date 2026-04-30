@@ -11,8 +11,21 @@ from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.files.storage import default_storage
 from unidecode import unidecode
 from categories.models import Category
+
+try:
+    from cloudinary_storage.storage import RawMediaCloudinaryStorage
+except Exception:
+    RawMediaCloudinaryStorage = None
+
+
+RESOURCE_FILE_STORAGE = (
+    RawMediaCloudinaryStorage()
+    if getattr(settings, 'CLOUDINARY_URL', '') and RawMediaCloudinaryStorage
+    else default_storage
+)
 
 
 class Resource(models.Model):
@@ -82,6 +95,7 @@ class Resource(models.Model):
         verbose_name='Tệp đính kèm',
         blank=True,
         null=True,
+        storage=RESOURCE_FILE_STORAGE,
         help_text='Cho phép: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP, RAR (tối đa 10MB)'
     )
     file_blob = models.BinaryField(

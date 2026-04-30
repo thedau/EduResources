@@ -480,6 +480,8 @@ def download_resource(request, slug):
 
     file_stream = resource.get_file_stream()
     if not file_stream:
+        if resource.file and getattr(resource.file, 'url', ''):
+            return redirect(resource.file.url)
         raise Http404('Không thể đọc tệp đính kèm.')
 
     # Tăng lượt tải (atomic)
@@ -588,6 +590,8 @@ def serve_file_inline(request, slug):
 
     file_stream = resource.get_file_stream()
     if not file_stream:
+        if resource.file and getattr(resource.file, 'url', ''):
+            return redirect(resource.file.url)
         raise Http404
 
     content_type = 'application/pdf'
