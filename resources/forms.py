@@ -8,6 +8,7 @@ Bao gồm: Form tài liệu, Form bình luận, kiểm tra tệp tải lên.
 
 from django import forms
 from django.conf import settings
+from django.core.files.uploadedfile import UploadedFile
 from PIL import Image
 from .models import Resource, Comment
 
@@ -90,6 +91,8 @@ class ResourceForm(forms.ModelForm):
     def clean_file(self):
         """Kiểm tra tệp đính kèm: định dạng và kích thước."""
         file = self.cleaned_data.get('file')
+        if file and not isinstance(file, UploadedFile):
+            return file
         if file:
             # Kiểm tra kích thước tệp
             max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024)
@@ -116,6 +119,8 @@ class ResourceForm(forms.ModelForm):
     def clean_thumbnail(self):
         """Kiểm tra ảnh thu nhỏ: định dạng và kích thước."""
         image = self.cleaned_data.get('thumbnail')
+        if image and not isinstance(image, UploadedFile):
+            return image
         if image:
             # Kiểm tra kích thước
             max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024)
@@ -153,6 +158,11 @@ class ResourceForm(forms.ModelForm):
         instance = super().save(commit=False)
         uploaded_file = self.cleaned_data.get('file')
         uploaded_thumbnail = self.cleaned_data.get('thumbnail')
+
+        if uploaded_file and not isinstance(uploaded_file, UploadedFile):
+            uploaded_file = None
+        if uploaded_thumbnail and not isinstance(uploaded_thumbnail, UploadedFile):
+            uploaded_thumbnail = None
 
         if not uploaded_file and self._original_file:
             instance.file = self._original_file
