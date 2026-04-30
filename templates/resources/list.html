@@ -76,7 +76,7 @@
         <div class="col-6 col-md-6 col-lg-4">
             <div class="card resource-card h-100 shadow-sm">
                 {% if resource.thumbnail %}
-                <img src="{{ resource.thumbnail.url }}" class="card-img-top resource-thumbnail" alt="{{ resource.title }}" loading="lazy" decoding="async" fetchpriority="low">
+                <img src="{{ resource.thumbnail_url }}" class="card-img-top resource-thumbnail" alt="{{ resource.title }}" loading="lazy" decoding="async" fetchpriority="low">
                 {% else %}
                 <div class="card-img-top resource-thumbnail-placeholder">
                     <i class="fas fa-file-alt"></i>

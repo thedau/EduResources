@@ -20,6 +20,11 @@ try:
 except Exception:
     RawMediaCloudinaryStorage = None
 
+try:
+    from cloudinary.utils import cloudinary_url
+except Exception:
+    cloudinary_url = None
+
 
 RESOURCE_FILE_STORAGE = (
     RawMediaCloudinaryStorage()
@@ -223,6 +228,29 @@ class Resource(models.Model):
         if self.file_blob:
             return io.BytesIO(self.file_blob)
         return None
+
+    def get_thumbnail_url(self):
+        """Lấy URL ảnh thu nhỏ, ký URL nếu Cloudinary yêu cầu."""
+        if not self.thumbnail:
+            return ''
+        url = getattr(self.thumbnail, 'url', '')
+        if not url:
+            return ''
+        if not cloudinary_url:
+            return url
+        delivery_type = 'authenticated' if '/authenticated/' in url else 'upload'
+        signed_url, _ = cloudinary_url(
+            getattr(self.thumbnail, 'name', ''),
+            resource_type='image',
+            type=delivery_type,
+            sign_url=(delivery_type == 'authenticated'),
+            secure=True,
+        )
+        return signed_url or url
+
+    @property
+    def thumbnail_url(self):
+        return self.get_thumbnail_url()
 
     def get_file_content_type(self):
         """Lấy MIME type đã lưu hoặc đoán từ tên tệp."""

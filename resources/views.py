@@ -18,6 +18,11 @@ from categories.models import Category
 from accounts.decorators import admin_required
 from accounts.models import create_audit_log
 
+try:
+    from cloudinary.utils import cloudinary_url
+except Exception:
+    cloudinary_url = None
+
 
 def _invalidate_pending_cache():
     """Xóa cache pending_count khi trạng thái tài liệu thay đổi."""
@@ -30,6 +35,24 @@ def _annotate_resources(queryset):
         avg_rating=Avg('comments__rating'),
         num_comments=Count('comments'),
     )
+
+
+def _build_cloudinary_signed_url(file_field, resource_type='raw'):
+    if not cloudinary_url or not file_field:
+        return ''
+    public_id = getattr(file_field, 'name', '')
+    if not public_id:
+        return ''
+    file_url = getattr(file_field, 'url', '')
+    delivery_type = 'authenticated' if '/authenticated/' in file_url else 'upload'
+    signed_url, _ = cloudinary_url(
+        public_id,
+        resource_type=resource_type,
+        type=delivery_type,
+        sign_url=True,
+        secure=True,
+    )
+    return signed_url
 
 
 def resource_list(request):
@@ -480,6 +503,9 @@ def download_resource(request, slug):
 
     file_stream = resource.get_file_stream()
     if not file_stream:
+        signed_url = _build_cloudinary_signed_url(resource.file)
+        if signed_url:
+            return redirect(signed_url)
         if resource.file and getattr(resource.file, 'url', ''):
             return redirect(resource.file.url)
         raise Http404('Không thể đọc tệp đính kèm.')
@@ -590,6 +616,9 @@ def serve_file_inline(request, slug):
 
     file_stream = resource.get_file_stream()
     if not file_stream:
+        signed_url = _build_cloudinary_signed_url(resource.file)
+        if signed_url:
+            return redirect(signed_url)
         if resource.file and getattr(resource.file, 'url', ''):
             return redirect(resource.file.url)
         raise Http404
